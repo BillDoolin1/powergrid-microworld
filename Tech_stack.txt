@@ -1,0 +1,15 @@
+Front-end
+HTML5 – Page structure and content.
+
+CSS3 – Layout and styling for the microworld interface.
+
+JavaScript (ES6+) – Core game logic, interactivity, and DOM updates in real time.
+
+Chart library (e.g. Chart.js or AnyChart) – For interactive graphs (demand vs supply, fuel mix, emissions).
+
+Hosting and tooling
+Git + GitHub – Version control and collaboration.
+
+GitHub Pages – Static hosting for the web application, accessible via any browser.
+
+VS Code – Main development environment (with Live Server or similar extension).
