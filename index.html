@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Power Grid Microworld</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js for dynamic charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
+  <!-- Start screen -->
   <div id="start-screen">
     <h1>Power Grid Microworld</h1>
     <p>Enter your team name to begin:</p>
@@ -16,11 +19,14 @@
     </form>
   </div>
 
+  <!-- Main game container -->
   <div id="game-screen" style="display: none;">
+    <!-- Welcome flash -->
     <div id="welcome-flash">
       <h1>Welcome to the Powergrid Microworld!</h1>
     </div>
 
+    <!-- Level select -->
     <div id="level-select-container" style="display: none;">
       <div class="level-select">
         <div class="level-select-title">
@@ -33,6 +39,7 @@
       </div>
     </div>
 
+    <!-- Level 1 -->
     <div id="level-1-screen" style="display: none;">
       <div class="level-header">
         <h2>Level 1: Tutorial</h2>
@@ -42,232 +49,275 @@
         </div>
       </div>
 
-      <div class="game-area">
-        <div id="goals-corner">
-          <h3>Level 1 Tutorial Goals</h3>
+      <div id="level-1-content">
+        <div class="game-area">
+          <!-- Goals -->
+          <div id="goals-corner">
+            <h3>Level 1 Tutorial Goals</h3>
 
-          <div class="goal">
-            <span>Goal 1: Match Projected Demand</span>
-            <span class="goal-progress">
-              <span id="goal-capacity-current">0</span> / <span id="goal-capacity-target">50</span> TWh
-            </span>
-            <span class="goal-status incomplete" id="goal-capacity-status">✗</span>
+            <div class="goal">
+              <span>Goal 1: Match Projected Demand</span>
+              <span class="goal-progress">
+                <span id="goal-capacity-current">0</span> / <span id="goal-capacity-target">50</span> TWh
+              </span>
+              <span class="goal-status incomplete" id="goal-capacity-status">✗</span>
+            </div>
+
+            <div class="goal">
+              <span>Goal 2: Reduce Greenhouse Gas Emissions</span>
+              <span class="goal-progress">
+                <span id="goal-gge-current">0</span> / <span id="goal-gge-target">24</span> MtCO2eq
+              </span>
+              <span class="goal-status incomplete" id="goal-gge-status">✗</span>
+            </div>
+
+            <div class="goal">
+              <span>Goal 3: Stay Within Budget</span>
+              <span class="goal-progress">
+                €<span id="budget-spent">0</span>M spent (€
+                <span id="budget-remaining">2000</span>M left)
+              </span>
+              <span class="goal-status incomplete" id="goal-budget-status">✗</span>
+            </div>
           </div>
 
-          <div class="goal">
-            <span>Goal 2: Reduce Greenhouse Gas Emissions</span>
-            <span class="goal-progress">
-              <span id="goal-gge-current">0</span> / <span id="goal-gge-target">24</span> MtCO2eq
-            </span>
-            <span class="goal-status incomplete" id="goal-gge-status">✗</span>
+          <!-- Energy table (top-left) -->
+          <div id="energy-table-wrap">
+            <table id="energy-table">
+              <caption>Energy Mix</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Type</th>
+                  <th scope="col">Construction Cost €M/MWh</th>
+                  <th scope="col">Lead Time (years)</th>
+                  <th scope="col">Operating Cost €/MWh</th>
+                  <th scope="col">Percentage of grid</th>
+                  <th scope="col">GGE (MtCO2eq)</th>
+                  <th scope="col">Capacity (TWh)</th>
+                  <th scope="col">Units</th>
+                  <th scope="col">Adjust</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr class="energy-row"
+                    data-type="oil"
+                    data-base-cap="5.75"
+                    data-base-gge="9.5"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.10"
+                    data-construct="1.0"
+                    data-operating="110">
+                  <th scope="row">Oil</th>
+                  <td>1M</td><td>2</td><td>110</td>
+                  <td><span id="pct-oil">17.5</span></td>
+                  <td><span id="gge-oil">9.5</span></td>
+                  <td><span class="cap-value" id="cap-oil">5.75</span></td>
+                  <td><span class="units-value" id="units-oil">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase oil">▲</button>
+                    <button class="step down" aria-label="Decrease oil">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="gas"
+                    data-base-cap="13.16"
+                    data-base-gge="17.5"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.10"
+                    data-construct="1.2"
+                    data-operating="70">
+                  <th scope="row">Gas</th>
+                  <td>1.2M</td><td>4</td><td>70</td>
+                  <td><span id="pct-gas">40</span></td>
+                  <td><span id="gge-gas">17.5</span></td>
+                  <td><span class="cap-value" id="cap-gas">13.16</span></td>
+                  <td><span class="units-value" id="units-gas">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase gas">▲</button>
+                    <button class="step down" aria-label="Decrease gas">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="wind"
+                    data-base-cap="10.46"
+                    data-base-gge="0.2"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.00"
+                    data-construct="1.4"
+                    data-operating="100">
+                  <th scope="row">Wind</th>
+                  <td>1.4M</td><td>5</td><td>100</td>
+                  <td><span id="pct-wind">31.8</span></td>
+                  <td><span id="gge-wind">0.2</span></td>
+                  <td><span class="cap-value" id="cap-wind">10.46</span></td>
+                  <td><span class="units-value" id="units-wind">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase wind">▲</button>
+                    <button class="step down" aria-label="Decrease wind">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="solar"
+                    data-base-cap="1.05"
+                    data-base-gge="0.08"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.00"
+                    data-construct="1.8"
+                    data-operating="150">
+                  <th scope="row">Solar</th>
+                  <td>1.8M</td><td>3</td><td>150</td>
+                  <td><span id="pct-solar">3.2</span></td>
+                  <td><span id="gge-solar">0.08</span></td>
+                  <td><span class="cap-value" id="cap-solar">1.05</span></td>
+                  <td><span class="units-value" id="units-solar">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase solar">▲</button>
+                    <button class="step down" aria-label="Decrease solar">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="offshore"
+                    data-base-cap="0.9"
+                    data-base-gge="0.05"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.00"
+                    data-construct="2.5"
+                    data-operating="200">
+                  <th scope="row">Offshore Wind</th>
+                  <td>2.5M</td><td>6</td><td>200</td>
+                  <td><span id="pct-offshore">2.7</span></td>
+                  <td><span id="gge-offshore">0.05</span></td>
+                  <td><span class="cap-value" id="cap-offshore">0.9</span></td>
+                  <td><span class="units-value" id="units-offshore">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase offshore">▲</button>
+                    <button class="step down" aria-label="Decrease offshore">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="nuclear"
+                    data-base-cap="3.2"
+                    data-base-gge="0.1"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.00"
+                    data-construct="3.0"
+                    data-operating="250">
+                  <th scope="row">Nuclear</th>
+                  <td>3.0M</td><td>7</td><td>250</td>
+                  <td><span id="pct-nuclear">9.7</span></td>
+                  <td><span id="gge-nuclear">0.1</span></td>
+                  <td><span class="cap-value" id="cap-nuclear">3.2</span></td>
+                  <td><span class="units-value" id="units-nuclear">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase nuclear">▲</button>
+                    <button class="step down" aria-label="Decrease nuclear">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="energy-row"
+                    data-type="hydro"
+                    data-base-cap="0.36"
+                    data-base-gge="0.02"
+                    data-unit-cap="0.25"
+                    data-unit-gge="0.00"
+                    data-construct="2.2"
+                    data-operating="180">
+                  <th scope="row">Hydro</th>
+                  <td>2.2M</td><td>4</td><td>180</td>
+                  <td><span id="pct-hydro">1.1</span></td>
+                  <td><span id="gge-hydro">0.02</span></td>
+                  <td><span class="cap-value" id="cap-hydro">0.36</span></td>
+                  <td><span class="units-value" id="units-hydro">0</span></td>
+                  <td class="adjust">
+                    <button class="step up" aria-label="Increase hydro">▲</button>
+                    <button class="step down" aria-label="Decrease hydro">▼</button>
+                  </td>
+                </tr>
+
+                <tr class="totals-row">
+                  <td colspan="5" style="text-align: right;"><strong>Total</strong></td>
+                  <td><strong><span id="gge-total">0</span></strong></td>
+                  <td><strong><span id="cap-total">0</span></strong></td>
+                  <td colspan="2"></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Charts section below table -->
+            <div id="charts-section" style="display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.2);">
+              
+              <!-- Chart 1: Projected Demand vs Supply -->
+              <div id="demand-chart-container" style="flex: 1; min-width: 300px; background: rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
+                <h4 style="margin: 0 0 12px 0; text-align: center; color: #fff;">Projected Demand vs Supply</h4>
+                <canvas id="demandChart"></canvas>
+              </div>
+
+              <!-- Chart 2: Fuel Mix Pie -->
+              <div id="fuel-chart-container" style="flex: 1; min-width: 300px; background: rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
+                <h4 style="margin: 0 0 12px 0; text-align: center; color: #fff;">Fuel Mix</h4>
+                <canvas id="fuelChart"></canvas>
+              </div>
+
+              <!-- Chart 3: GGE Bar Chart -->
+              <div id="gge-chart-container" style="flex: 1; min-width: 300px; background: rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
+                <h4 style="margin: 0 0 12px 0; text-align: center; color: #fff;">Greenhouse Gas Emissions</h4>
+                <canvas id="ggeChart"></canvas>
+              </div>
+
+            </div>
           </div>
 
-          <div class="goal">
-            <span>Goal 3: Stay Within Budget</span>
-            <span class="goal-progress">
-              €<span id="budget-spent">0</span>M spent (€
-              <span id="budget-remaining">2000</span>M left)
-            </span>
-            <span class="goal-status incomplete" id="goal-budget-status">✗</span>
+          <!-- Investment panel (bottom-right) -->
+          <div id="investment-panel" data-gge-mult="0.10">
+            <h4 style="margin: 0 0 12px 0; text-align: center; font-size: 1.1rem;">Policy Investments</h4>
+
+            <div class="invest-item">
+              <label for="invest-1" style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+                <input type="checkbox" id="invest-1" data-cost="75" data-gge-reduction="2.0">
+                <span>Investment One: Home solar panel grant (Cost 75M)</span>
+              </label>
+            </div>
+
+            <div class="invest-item">
+              <label for="invest-2" style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+                <input type="checkbox" id="invest-2" data-cost="100" data-gge-reduction="3.5">
+                <span>Investment Two: Heat pump Grant (Cost 100M)</span>
+              </label>
+            </div>
+
+            <div class="invest-item">
+              <label for="invest-3" style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+                <input type="checkbox" id="invest-3" data-cost="200" data-gge-reduction="5.0">
+                <span>Investment Three: Retrofitting Allowance (Cost 200M)</span>
+              </label>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div id="energy-table-wrap">
-          <table id="energy-table">
-            <caption>Energy Mix</caption>
-            <thead>
-              <tr>
-                <th scope="col">Type</th>
-                <th scope="col">Constructing Cost € /MWh</th>
-                <th scope="col">Lead Time (years)</th>
-                <th scope="col">Operating Cost/MWh</th>
-                <th scope="col">Percentage of grid</th>
-                <th scope="col">GGE (MtCO2eq)</th>
-                <th scope="col">Capacity (TWh)</th>
-                <th scope="col">Units invested in</th>
-                <th scope="col">Adjust</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr class="energy-row"
-                  data-type="oil"
-                  data-base-cap="5.75"
-                  data-base-gge="9.5"
-                  data-unit-cap="0.25"
-                  data-unit-gge="0.10"
-                  data-construct="1.0"
-                  data-operating="110">
-                <th scope="row">Oil</th>
-                <td>1M</td><td>2</td><td>110</td>
-                <td><span id="pct-oil">17.5</span></td>
-                <td><span id="gge-oil">9.5</span></td>
-                <td><span class="cap-value" id="cap-oil">5.75</span></td>
-                <td><span class="units-value" id="units-oil">0</span></td>
-                <td class="adjust">
-                  <button class="step up" aria-label="Increase oil">▲</button>
-                  <button class="step down" aria-label="Decrease oil">▼</button>
-                </td>
-              </tr>
-
-              <tr class="energy-row"
-                  data-type="gas"
-                  data-base-cap="13.16"
-                  data-base-gge="17.5"
-                  data-unit-cap="0.25"
-                  data-unit-gge="0.10"
-                  data-construct="1.2"
-                  data-operating="70">
-                <th scope="row">Gas</th>
-                <td>1.2M</td><td>4</td><td>70</td>
-                <td><span id="pct-gas">40</span></td>
-                <td><span id="gge-gas">17.5</span></td>
-                <td><span class="cap-value" id="cap-gas">13.16</span></td>
-                <td><span class="units-value" id="units-gas">0</span></td>
-                <td class="adjust">
-                  <button class="step up" aria-label="Increase gas">▲</button>
-                  <button class="step down" aria-label="Decrease gas">▼</button>
-                </td>
-              </tr>
-
-              <tr class="energy-row"
-                  data-type="wind"
-                  data-base-cap="10.46"
-                  data-base-gge="0.2"
-                  data-unit-cap="0.25"
-                  data-unit-gge="0.00"
-                  data-construct="1.4"
-                  data-operating="100">
-                <th scope="row">Wind</th>
-                <td>1.4M</td><td>5</td><td>100</td>
-                <td><span id="pct-wind">31.8</span></td>
-                <td><span id="gge-wind">0.2</span></td>
-                <td><span class="cap-value" id="cap-wind">10.46</span></td>
-                <td><span class="units-value" id="units-wind">0</span></td>
-                <td class="adjust">
-                  <button class="step up" aria-label="Increase wind">▲</button>
-                  <button class="step down" aria-label="Decrease wind">▼</button>
-                </td>
-              </tr>
-
-              <tr class="energy-row"
-                  data-type="solar"
-                  data-base-cap="0.987"
-                  data-base-gge="0.3"
-                  data-unit-cap="0.25"
-                  data-unit-gge="0.00"
-                  data-construct="0.8"
-                  data-operating="80">
-                <th scope="row">Solar</th>
-                <td>0.8M</td><td>2</td><td>80</td>
-                <td><span id="pct-solar">3</span></td>
-                <td><span id="gge-solar">0.3</span></td>
-                <td><span class="cap-value" id="cap-solar">0.987</span></td>
-                <td><span class="units-value" id="units-solar">0</span></td>
-                <td class="adjust">
-                  <button class="step up" aria-label="Increase solar">▲</button>
-                  <button class="step down" aria-label="Decrease solar">▼</button>
-                </td>
-              </tr>
-
-              <tr class="energy-row"
-                  data-type="offshore"
-                  data-base-cap="1.57"
-                  data-base-gge="0.1"
-                  data-unit-cap="0.25"
-                  data-unit-gge="0.00"
-                  data-construct="3.0"
-                  data-operating="25">
-                <th scope="row">OffShore</th>
-                <td>3.0M</td><td>8</td><td>25</td>
-                <td><span id="pct-offshore">4.8</span></td>
-                <td><span id="gge-offshore">0.1</span></td>
-                <td><span class="cap-value" id="cap-offshore">1.57</span></td>
-                <td><span class="units-value" id="units-offshore">0</span></td>
-                <td class="adjust">
-                  <button class="step up" aria-label="Increase offshore">▲</button>
-                  <button class="step down" aria-label="Decrease offshore">▼</button>
-                </td>
-              </tr>
-            </tbody>
-
-            <tfoot>
-              <tr>
-                <th scope="row">Total</th>
-                <td>-</td><td>-</td><td>-</td><td>-</td>
-                <td><span id="gge-total">0</span></td>
-                <td><span id="cap-total">0</span> TWh</td>
-                <td>-</td><td>-</td>
-              </tr>
-              <tr>
-                <th scope="row">To Meet</th>
-                <td>-</td><td>-</td><td>-</td><td>-</td>
-                <td><span id="gge-target">24</span> MtCO2eq</td>
-                <td><span id="cap-target">50</span> TWh</td>
-                <td>-</td><td>-</td>
-              </tr>
-            </tfoot>
-          </table>
+      <!-- Pause overlay -->
+      <div id="pause-overlay" style="display: none;">
+        <div class="pause-panel">
+          <h2>Game Paused</h2>
+          <button id="resume-btn">Resume</button>
+          <button id="reset-btn">Reset Timer</button>
+          <button id="exit-btn">Exit to Menu</button>
         </div>
-
-        <!-- Investments (10% more expensive; adds +10% GGE each when checked) -->
-        <aside id="investment-panel" aria-label="Investment options" data-gge-mult="0.10">
-          <div class="invest-header">
-            <div class="invest-title">Investment Options</div>
-          </div>
-
-          <label class="invest-item">
-            <span class="invest-text">Home solar panel grant <span class="invest-cost">(Cost 82.5M)</span></span>
-            <input type="checkbox" id="inv-solar-grant" data-cost="75" />
-          </label>
-
-          <label class="invest-item">
-            <span class="invest-text">Heat pump grant <span class="invest-cost">(Cost 110M)</span></span>
-            <input type="checkbox" id="inv-heatpump-grant" data-cost="100" />
-          </label>
-
-          <label class="invest-item">
-            <span class="invest-text">Retrofitting allowance <span class="invest-cost">(Cost 220M)</span></span>
-            <input type="checkbox" id="inv-retrofit" data-cost="200" />
-          </label>
-        </aside>
-
       </div>
     </div>
 
+    <!-- Level 2 & 3 placeholders -->
     <div id="level-2-screen" style="display: none;">
-      <div class="level-header">
-        <h2>Level 2</h2>
-        <div class="timer-pause">
-          <span id="timer-level2">00:00</span>
-          <button id="pause-btn-level2">⏸️ Pause</button>
-        </div>
-      </div>
-      <div class="game-area">
-        <p style="padding: 48px; font-size: 2rem; text-align: center;">To be completed</p>
-      </div>
+      <h2>Level 2 (Coming Soon)</h2>
     </div>
-
     <div id="level-3-screen" style="display: none;">
-      <div class="level-header">
-        <h2>Level 3</h2>
-        <div class="timer-pause">
-          <span id="timer-level3">00:00</span>
-          <button id="pause-btn-level3">⏸️ Pause</button>
-        </div>
-      </div>
-      <div class="game-area">
-        <p style="padding: 48px; font-size: 2rem; text-align: center;">To be completed</p>
-      </div>
-    </div>
-  </div>
-
-  <div id="pause-overlay" style="display: none;">
-    <div class="pause-panel">
-      <h3>Paused</h3>
-      <button id="resume-btn">Resume</button>
-      <button id="reset-btn">Reset Level</button>
-      <button id="exit-btn">Exit to Level Select</button>
+      <h2>Level 3 (Coming Soon)</h2>
     </div>
   </div>
 
