@@ -1,11 +1,7 @@
 /* ========== Global ========== */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html, body {
-  height: 100%;
-}
+html, body { height: 100%; }
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -173,7 +169,7 @@ body {
 
 /* Game area fills all remaining space */
 .game-area {
-  position: relative;          /* parent for goals-corner */
+  position: relative; /* parent for overlays */
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
@@ -194,14 +190,11 @@ body {
 /* ========== Goals corner inside game area ========== */
 #goals-corner {
   position: absolute;
-
-  /* Pin to top-right (works even if you keep it inside .game-area) */
   top: 16px;
   right: 16px;
   left: auto;
   bottom: auto;
 
-  /* Box fits content, but won’t grow too big */
   width: fit-content;
   height: fit-content;
   max-width: min(520px, 45vw);
@@ -236,14 +229,11 @@ body {
   padding: 10px 0;
   border-bottom: 1px solid rgba(255,255,255,0.12);
 
-  /* more legible */
   font-size: 1.02rem;
   line-height: 1.35;
 }
 
-.goal:last-child {
-  border-bottom: none;
-}
+.goal:last-child { border-bottom: none; }
 
 .goal-progress {
   font-family: 'Courier New', monospace;
@@ -260,13 +250,8 @@ body {
   text-align: center;
 }
 
-.goal-status.complete {
-  color: #c9ffcf;
-}
-
-.goal-status.incomplete {
-  color: #ffe0e0;
-}
+.goal-status.complete { color: #c9ffcf; }
+.goal-status.incomplete { color: #ffe0e0; }
 
 /* ========== Pause overlay ========== */
 #pause-overlay {
@@ -325,4 +310,174 @@ button[type="submit"] {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+}
+
+/* ========== Energy table (top-left overlay) ========== */
+#energy-table-wrap {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+
+  width: min(1200px, 78vw);
+  max-height: none;
+
+  overflow-x: auto;
+  overflow-y: visible;
+
+  background: rgba(255,255,255,0.14);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+
+  padding: 10px;
+}
+
+#energy-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #fff;
+  font-size: 0.86rem;
+}
+
+#energy-table caption {
+  caption-side: top;
+  text-align: left;
+  padding: 6px 6px 10px 6px;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+#energy-table th,
+#energy-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#energy-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(12px);
+  z-index: 1;
+  text-align: left;
+}
+
+#energy-table tfoot th,
+#energy-table tfoot td {
+  background: rgba(0,0,0,0.18);
+  font-weight: 800;
+}
+
+#energy-table .cap-value,
+#energy-table .units-value {
+  font-family: monospace;
+}
+
+#energy-table td.adjust {
+  white-space: nowrap;
+}
+
+/* Stepper buttons inside table */
+#energy-table .step {
+  padding: 6px 10px;
+  margin: 0 4px;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+}
+
+#energy-table .step:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+/* ========== Investment panel (BOTTOM-RIGHT, no wrap) ========== */
+#investment-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  top: auto;
+  z-index: 65;
+
+  width: min(620px, 52vw);
+  max-height: 55vh;
+
+  overflow-y: auto;
+  overflow-x: auto;
+
+  background: rgba(120, 150, 190, 0.45);
+  border: 2px solid rgba(255,255,255,0.20);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 44px rgba(0,0,0,0.45);
+
+  padding: 16px;
+  color: #fff;
+}
+
+/* Make the whole line stay on one row (no wrapping) */
+#investment-panel .invest-header,
+#investment-panel .invest-title,
+#investment-panel .invest-item,
+#investment-panel .invest-text,
+#investment-panel .invest-cost {
+  white-space: nowrap; /* prevents wrapping [web:145] */
+}
+
+/* Keep checkbox aligned and easy to click */
+#investment-panel{
+  position:absolute;
+  right:16px;
+  bottom:16px;
+  top:auto;
+  z-index:65;
+
+  width:min(620px,52vw);
+  max-height:55vh;
+
+  overflow-y:auto;
+  overflow-x:auto; /* scroll instead of wrap [web:149] */
+
+  background:rgba(120,150,190,0.45);
+  border:2px solid rgba(255,255,255,0.20);
+  border-radius:16px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 14px 44px rgba(0,0,0,0.45);
+
+  padding:16px;
+  color:#fff;
+}
+
+/* Absolutely prevent wrapping inside investments [web:145] */
+#investment-panel,
+#investment-item *{
+  white-space:nowrap;
+}
+
+#investment-panel .invest-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+
+  padding:14px 12px;
+  margin:10px 0;
+
+  background:rgba(0,0,0,0.12);
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:14px;
+  cursor:pointer;
+}
+
+#investment-panel input[type="checkbox"]{
+  width:22px;
+  height:22px;
+  accent-color:#00e676;
+  flex:0 0 auto;
 }
