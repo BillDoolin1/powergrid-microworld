@@ -251,6 +251,15 @@ body {
 .goal-status.complete { color: #c9ffcf; }
 .goal-status.incomplete { color: #ffe0e0; }
 
+#header-budget-note {
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #eaffea;
+  margin: 0 auto;
+  pointer-events: none;
+}
 /* ========== Pause overlay ========== */
 #pause-overlay {
   position: fixed;

@@ -149,7 +149,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const remaining = STATE.budgetTotalM - spent;
 
     setText("budget-spent", spent.toFixed(0));
+    setText("header-budget-spent", spent.toFixed(0));
     setText("budget-remaining", remaining.toFixed(0));
+    
 
     // ========== UPDATE GOAL STATUSES ==========
     const capacityTarget = num(document.getElementById("goal-capacity-target")?.textContent, 50);
