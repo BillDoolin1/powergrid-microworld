@@ -34,8 +34,8 @@
           <h2>Please select level</h2>
         </div>
         <button class="level-btn" data-level="1">Level 1 (Tutorial)</button>
-        <button class="level-btn locked" data-level="2" disabled>Level 2 (Locked)</button>
-        <button class="level-btn locked" data-level="3" disabled>Level 3 (Locked)</button>
+        <button class="level-btn locked" data-level="2" disabled>Level 2 </button>
+        <button class="level-btn locked" data-level="3" disabled>Level 3 </button>
       </div>
     </div>
 
@@ -89,7 +89,7 @@
           <!-- Energy table (top-left) -->
           <div id="energy-table-wrap">
             <table id="energy-table">
-              <caption>Energy Mix</caption>
+              <caption>Power Table</caption>
               <thead>
                 <tr>
                   <th scope="col">Type</th>
@@ -99,7 +99,7 @@
                   <th scope="col">Percentage of grid</th>
                   <th scope="col">GGE (MtCO2eq)</th>
                   <th scope="col">Capacity (TWh)</th>
-                  <th scope="col">Units</th>
+                  <th scope="col">Units???</th>
                   <th scope="col">Add/Remove Units</th>
                 </tr>
               </thead>
@@ -109,7 +109,7 @@
                     data-type="oil"
                     data-base-cap="5.75"
                     data-base-gge="9.5"
-                    data-unit-cap="0.25"
+                    data-unit-cap="0.35"
                     data-unit-gge="0.10"
                     data-construct="1.0"
                     data-operating="110">
@@ -129,7 +129,7 @@
                     data-type="gas"
                     data-base-cap="13.16"
                     data-base-gge="17.5"
-                    data-unit-cap="0.25"
+                    data-unit-cap="0.35"
                     data-unit-gge="0.10"
                     data-construct="1.2"
                     data-operating="70">
@@ -169,7 +169,7 @@
                     data-type="solar"
                     data-base-cap="1.05"
                     data-base-gge="0.08"
-                    data-unit-cap="0.25"
+                    data-unit-cap="0.45"
                     data-unit-gge="0.00"
                     data-construct="1.8"
                     data-operating="150">
@@ -189,7 +189,7 @@
                     data-type="offshore"
                     data-base-cap="0.9"
                     data-base-gge="0.05"
-                    data-unit-cap="0.25"
+                    data-unit-cap="0.45"
                     data-unit-gge="0.00"
                     data-construct="2.5"
                     data-operating="200">
@@ -209,7 +209,7 @@
                     data-type="nuclear"
                     data-base-cap="3.2"
                     data-base-gge="0.1"
-                    data-unit-cap="0.25"
+                    data-unit-cap="3.25"
                     data-unit-gge="0.00"
                     data-construct="3.0"
                     data-operating="250">
@@ -315,11 +315,21 @@
           <button id="exit-btn">Exit to Menu</button>
         </div>
       </div>
+      <div id="level-complete-overlay" style="display:none;">
+  <div class="level-complete-card">
+    <h2>Congratulatioons! Level 1 finished!</h2>
+    <p>Level 2 is now unlocked.</p>
+    <p>Maybe add a submit button so students can optimse before submitting</p>
+    <button id="go-to-level-2-btn">Go to Level 2</button>
+    <button id="close-level-complete-btn">Close</button>
+  </div>
+</div>
+
     </div>
 
     <!-- Level 2 & 3 placeholders -->
     <div id="level-2-screen" style="display: none;">
-      <h2>Level 2 (Coming Soon)</h2>
+      <h2>Level 2 (add in post getting the ok for level 1)</h2>
     </div>
     <div id="level-3-screen" style="display: none;">
       <h2>Level 3 (Coming Soon)</h2>

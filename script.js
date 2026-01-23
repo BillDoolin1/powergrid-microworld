@@ -27,6 +27,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return Number.isFinite(n) ? n : fallback;
   }
 
+  function unlockLevel2() {
+  const btn = document.querySelector('.level-btn[data-level="2"]');
+  if (!btn) return;
+  btn.disabled = false;
+  btn.classList.remove("locked"); // toggle class via classList [web:367]
+}
+
+function showLevelComplete() {
+  const overlay = document.getElementById("level-complete-overlay");
+  if (overlay) overlay.style.display = "flex";
+}
+
+function checkLevel1CompletionAndUnlockNext() {
+  const capMet = document.getElementById("goal-capacity-status")?.textContent.trim() === "✓";
+  const ggeMet = document.getElementById("goal-gge-status")?.textContent.trim() === "✓";
+  const budMet = document.getElementById("goal-budget-status")?.textContent.trim() === "✓";
+
+  if (capMet && ggeMet && budMet && !levelCompleted[1]) {
+    levelCompleted[1] = true;
+    unlockLevel2();
+    showLevelComplete();
+  }
+}
+
+
   function setText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = String(value);
@@ -169,6 +194,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Goal 3: Spent ≤ budget
     const budgetMet = spent <= budgetTotal;
     updateGoalStatus("goal-budget-status", budgetMet);
+
+
+    checkLevel1CompletionAndUnlockNext();
+
   }
 
   // Update goal status icon
@@ -326,6 +355,24 @@ document.addEventListener("DOMContentLoaded", () => {
           timerInterval = null;
         }
       };
+
+     document.getElementById("close-level-complete-btn")?.addEventListener("click", () => {
+  const overlay = document.getElementById("level-complete-overlay");
+  if (overlay) overlay.style.display = "none";
+});
+
+document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
+  const overlay = document.getElementById("level-complete-overlay");
+  if (overlay) overlay.style.display = "none";
+
+  // Exit level 1 screen, go back to menu and auto-open level 2
+  level1Screen.style.display = "none";
+  levelSelectContainer.style.display = "flex";
+
+  const level2Btn = document.querySelector('.level-btn[data-level="2"]');
+  level2Btn?.click();
+});
+ 
     }
 
     if (resumeBtn) {
