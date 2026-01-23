@@ -126,6 +126,15 @@ body {
   border-bottom: 2px solid rgba(255,255,255,0.2);
 }
 
+
+.level-header-budget {
+  font-size: 1.5rem;
+  font-family: monospace;
+  background: rgba(147, 183, 153, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
 /* Timer + pause */
 .timer-pause {
   display: flex;
@@ -201,7 +210,7 @@ body {
   max-width: min(520px, 45vw);
   max-height: 45vh;
 
-  background: rgba(0, 174, 58, 0.85);
+  background: rgba(65, 147, 93, 0.85);
   backdrop-filter: blur(20px);
   border-radius: 14px;
   border: 2px solid rgba(255,255,255,0.25);
@@ -251,15 +260,6 @@ body {
 .goal-status.complete { color: #c9ffcf; }
 .goal-status.incomplete { color: #ffe0e0; }
 
-#header-budget-note {
-  flex: 0 0 auto;
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #eaffea;
-  margin: 0 auto;
-  pointer-events: none;
-}
 /* ========== Pause overlay ========== */
 #pause-overlay {
   position: fixed;
@@ -326,7 +326,8 @@ button[type="submit"] {
   left: 16px;
   z-index: 60;
 
-  width: min(1200px, 78vw);
+  width: min(1350px, 100vw);
+  height: min(100vh);
   max-height: none;
 
   overflow-x: auto;
@@ -339,7 +340,7 @@ button[type="submit"] {
   box-shadow: 0 12px 40px rgba(0,0,0,0.45);
 
   padding: 10px;
-  max-height: 80vh;
+  max-height: 87vh;
 }
 
 #energy-table {
@@ -445,8 +446,8 @@ button[type="submit"] {
   overflow-y: auto;
   overflow-x: auto;
 
-  background: rgba(120, 150, 190, 0.45);
-  border: 2px solid rgba(255,255,255,0.20);
+  background: rgba(65, 147, 93, 0.85);
+  border: 2px solid rgba(99, 145, 114, 0.85);
   border-radius: 16px;
   backdrop-filter: blur(14px);
   box-shadow: 0 14px 44px rgba(0,0,0,0.45);
@@ -484,9 +485,10 @@ button[type="submit"] {
 }
 
 /* ========== Responsive adjustments ========== */
-@media (max-width: 1024px) {
+@media (max-width: 70vw) {
   #energy-table-wrap {
     width: min(100%, 90vw);
+    height: min(100%,90vw);
   }
 
   #investment-panel {
@@ -519,5 +521,6 @@ button[type="submit"] {
   #fuel-chart-container,
   #gge-chart-container {
     min-width: 100%;
+    min-height: 100%;
   }
 }

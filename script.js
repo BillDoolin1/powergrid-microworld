@@ -42,14 +42,14 @@ document.addEventListener("DOMContentLoaded", () => {
     return Number.isFinite(n) ? Math.max(0, n) : 0;
   }
 
-  // ---- Investments: 10% more expensive, REDUCE GGE directly ----
+  // ---- Investments: , REDUCE GGE directly ----
   function investmentSpendM() {
     const cbs = [...document.querySelectorAll('#investment-panel input[type="checkbox"]')];
     let sum = 0;
     cbs.forEach((cb) => {
       if (!cb.checked) return;
       const base = num(cb.dataset.cost, 0);
-      sum += base * 1.10; // 10% more expensive
+      sum += base * 1; // 
     });
     return sum;
   }
@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const remaining = STATE.budgetTotalM - spent;
 
     setText("budget-spent", spent.toFixed(0));
-    setText("header-budget-spent", spent.toFixed(0));
+    setText("header-budget-spent", (spent.toFixed(0)/1000));
     setText("budget-remaining", remaining.toFixed(0));
     
 
@@ -216,14 +216,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Priority 2: approximate Ireland-like electricity mix
     const mix = {
-      gas: 0.39,
-      wind: 0.32,
-      solar: 0.04,
-      offshore: 0.02,
-      oil: 0.01
+      gas: 0.0,
+      wind: 0.0,
+      solar: 0.0,
+      offshore: 0.0,
+      oil: 0.0
     };
 
-    const TOTAL_UNITS = 120;
+    const TOTAL_UNITS = 1;
 
     Object.entries(mix).forEach(([type, share]) => {
       const u = Math.round(TOTAL_UNITS * share);
@@ -394,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               label: "Demand",
               data: [32, 34, 36, 38, 39, 40],
-              borderColor: "#ff6b6b",
+              borderColor: "#8acb84",
               backgroundColor: "rgba(255, 107, 107, 0.1)",
               borderWidth: 2.5,
               tension: 0.4,
@@ -403,7 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               label: "Supply",
               data: [33, 35, 37, 39, 41, 43],
-              borderColor: "#4ecdc4",
+              borderColor: "#204a35",
               backgroundColor: "rgba(78, 205, 196, 0.1)",
               borderWidth: 2.5,
               tension: 0.4,
@@ -444,13 +444,13 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               data: [40, 32, 18, 5, 3, 1, 1],
               backgroundColor: [
-                "#7c5ac2",
-                "#4ecdc4",
-                "#ff6b6b",
-                "#95e1d3",
-                "#5a92a1",
-                "#f9c74f",
-                "#90be6d"
+                "#b7e4c7",
+                "	#95d5b2",
+                "#52b788",
+                "	#40916c",
+                "#2d6a4f",
+                "#1b4332",
+                "#081c15"
               ],
               borderColor: "rgba(0,0,0,0.2)",
               borderWidth: 2
@@ -480,8 +480,8 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               label: "GGE Emissions (MtCO2eq)",
               data: [29, 28, 27.5, 27, 26.5, 26],
-              backgroundColor: "#4ecdc4",
-              borderColor: "#2a9d8f",
+              backgroundColor: "#40916c",
+              borderColor: "#40916c",
               borderWidth: 1
             }
           ]
