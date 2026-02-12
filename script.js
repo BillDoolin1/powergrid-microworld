@@ -436,11 +436,11 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
       demandChart = new Chart(demandCtx, {
         type: "line",
         data: {
-          labels: ["2025", "2026", "2027", "2028", "2029", "2030"],
+          labels: [ "2026", "2027", "2028", "2029", "2030"],
           datasets: [
             {
               label: "Demand",
-              data: [32, 34, 36, 38, 39, 40],
+              data: [ 34, 36, 38, 39, 40],
               borderColor: "#8acb84",
               backgroundColor: "rgba(255, 107, 107, 0.1)",
               borderWidth: 2.5,
@@ -449,7 +449,7 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
             },
             {
               label: "Supply",
-              data: [33, 35, 37, 39, 41, 43],
+              data: [ 35, 37, 39, 41, 43],
               borderColor: "#204a35",
               backgroundColor: "rgba(78, 205, 196, 0.1)",
               borderWidth: 2.5,
