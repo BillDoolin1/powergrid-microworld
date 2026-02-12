@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Budget: €2B stored as €M
   const STATE = {
-    budgetTotalM: 2000,
+    budgetTotalM: 5000,
     unitDiscount: 0.10 // 90% cheaper => pay 10%
   };
 
@@ -516,45 +516,38 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
       });
     }
 
-    // GGE Bar chart
-    const ggeCtx = document.getElementById("ggeChart")?.getContext("2d");
-    if (ggeCtx && !ggeChart) {
-      ggeChart = new Chart(ggeCtx, {
-        type: "bar",
-        data: {
-          labels: ["2025", "2026", "2027", "2028", "2029", "2030"],
-          datasets: [
-            {
-              label: "GGE Emissions (MtCO2eq)",
-              data: [29, 28, 27.5, 27, 26.5, 26],
-              backgroundColor: "#40916c",
-              borderColor: "#40916c",
-              borderWidth: 1
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          indexAxis: "x",
-          plugins: {
-            legend: {
-              labels: { color: "#fff", font: { size: 12 } }
-            }
-          },
-          scales: {
-            y: {
-              ticks: { color: "#fff" },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            },
-            x: {
-              ticks: { color: "#fff" },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            }
-          }
-        }
-      });
+// GGE Line chart (replace your current "GGE Bar chart" block)
+const ggeCtx = document.getElementById("ggeChart")?.getContext("2d");
+if (ggeCtx && !ggeChart) {
+  ggeChart = new Chart(ggeCtx, {
+    type: "line",
+    data: {
+      labels: [ "2026", "2027", "2028", "2029", "2030"],
+      datasets: [{
+        label: "GGE Emissions (MtCO2eq)",
+        data: [ 29, 28, 27, 26.5, 26],
+        borderColor: "#40916c",
+        backgroundColor: "rgba(64, 145, 108, 0.15)",
+        borderWidth: 2.5,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: "#fff", font: { size: 12 } } }
+      },
+      scales: {
+        y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
+        x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
+      }
     }
+  });
+}
   }
 
   function updateCharts() {
@@ -567,7 +560,7 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
 
     // Update Demand chart "Supply" line
     if (demandChart) {
-      demandChart.data.datasets[1].data = [totalCap, totalCap, totalCap, totalCap, totalCap, totalCap];
+      demandChart.data.datasets[1].data = [ totalCap, totalCap, totalCap, totalCap, totalCap];
       demandChart.update();
     }
 
@@ -583,7 +576,7 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
     // Update GGE bar
     const currentGGE = num(document.getElementById("goal-gge-current")?.textContent, 0);
     if (ggeChart) {
-      ggeChart.data.datasets[0].data = [currentGGE + 5, currentGGE + 4, currentGGE + 3.5, currentGGE + 3, currentGGE + 2.5, currentGGE + 2];
+      ggeChart.data.datasets[0].data = [ currentGGE , currentGGE , currentGGE , currentGGE , currentGGE];
       ggeChart.update();
     }
   }
