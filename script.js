@@ -221,7 +221,7 @@ function checkLevel1CompletionAndUnlockNext() {
   function recomputeAll() {
     recomputeRowsFromUnits();
     recomputeTotalsGoalsBudget();
-    updateCharts();
+    updateChartsForLevel(currentLevel);
   }
 
   // ---- Initialize starting units ----
@@ -303,8 +303,8 @@ levelButtons.forEach((btn) => {
       setupPauseListeners();
       initStartingUnitsIfEmpty();
       setTimeout(() => {
-        if (!demandChart) initCharts();
-        recomputeAll();
+      initChartsForLevel(level);
+      recomputeAll();
       }, 100);
     } else if (level === 2) {
       level2Screen.style.display = "flex";
@@ -312,8 +312,8 @@ levelButtons.forEach((btn) => {
       setupPauseListeners();
       initStartingUnitsIfEmpty();
       setTimeout(() => {
-        if (!demandChart) initCharts();
-        recomputeAll();
+      initChartsForLevel(level);
+      recomputeAll();
       }, 100);   
      } else if (level === 3) {
       document.getElementById("level-3-screen").style.display = "flex";
@@ -458,159 +458,154 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
 
 
   // ========== CHART INITIALIZATION & UPDATES ==========
-  let demandChart = null;
-  let fuelChart = null;
-  let ggeChart = null;
+// =================== CHARTS (Level 1 + Level 2) ===================
+const charts = {
+  1: { demand: null, fuel: null, gge: null },
+  2: { demand: null, fuel: null, gge: null }
+};
 
-  function initCharts() {
-    // Demand vs Supply chart
-    const demandCtx = document.getElementById("demandChart")?.getContext("2d");
-    if (demandCtx && !demandChart) {
-      demandChart = new Chart(demandCtx, {
-        type: "line",
-        data: {
-          labels: [ "2026", "2027", "2028", "2029", "2030"],
-          datasets: [
-            {
-              label: "Demand",
-              data: [ 34, 36, 38, 39, 40],
-              borderColor: "#8acb84",
-              backgroundColor: "rgba(255, 107, 107, 0.1)",
-              borderWidth: 2.5,
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: "Supply",
-              data: [ 35, 37, 39, 41, 43],
-              borderColor: "#204a35",
-              backgroundColor: "rgba(78, 205, 196, 0.1)",
-              borderWidth: 2.5,
-              tension: 0.4,
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              labels: { color: "#fff", font: { size: 12 } }
-            }
-          },
-          scales: {
-            y: {
-              ticks: { color: "#fff" },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            },
-            x: {
-              ticks: { color: "#fff" },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            }
-          }
-        }
-      });
-    }
-
-    // Fuel Mix Pie chart
-    const fuelCtx = document.getElementById("fuelChart")?.getContext("2d");
-    if (fuelCtx && !fuelChart) {
-      fuelChart = new Chart(fuelCtx, {
-        type: "doughnut",
-        data: {
-          labels: ["Gas", "Wind", "Oil", "Nuclear", "Offshore", "Solar", "Hydro"],
-          datasets: [
-            {
-              data: [40, 32, 18, 5, 3, 1, 1],
-              backgroundColor: [
-                "#b7e4c7",
-                "	#95d5b2",
-                "#52b788",
-                "	#40916c",
-                "#2d6a4f",
-                "#1b4332",
-                "#081c15"
-              ],
-              borderColor: "rgba(0,0,0,0.2)",
-              borderWidth: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              labels: { color: "#fff", font: { size: 11 } }
-            }
-          }
-        }
-      });
-    }
-
-// GGE Line chart (replace your current "GGE Bar chart" block)
-const ggeCtx = document.getElementById("ggeChart")?.getContext("2d");
-if (ggeCtx && !ggeChart) {
-  ggeChart = new Chart(ggeCtx, {
-    type: "line",
-    data: {
-      labels: [ "2026", "2027", "2028", "2029", "2030"],
-      datasets: [{
-        label: "GGE Emissions (MtCO2eq)",
-        data: [ 29, 28, 27, 26.5, 26],
-        borderColor: "#40916c",
-        backgroundColor: "rgba(64, 145, 108, 0.15)",
-        borderWidth: 2.5,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.35,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { labels: { color: "#fff", font: { size: 12 } } }
-      },
-      scales: {
-        y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-        x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
-      }
-    }
-  });
+function chartIds(level) {
+  const s = level === 2 ? "2" : "";
+  return {
+    suffix: s,
+    demandCanvasId: `demandChart${s}`,
+    fuelCanvasId: `fuelChart${s}`,
+    ggeCanvasId: `ggeChart${s}`,
+    tableSelector: level === 2 ? "#energy-table-2" : "#energy-table",
+    ggeGoalId: level === 2 ? "goal2-gge-current" : "goal-gge-current"
+  };
 }
+
+function initChartsForLevel(level) {
+  const ids = chartIds(level);
+
+  // Demand vs Supply
+  const demandCtx = document.getElementById(ids.demandCanvasId)?.getContext("2d");
+  if (demandCtx && !charts[level].demand) {
+    charts[level].demand = new Chart(demandCtx, {
+      type: "line",
+      data: {
+        labels: ["2026", "2027", "2028", "2029", "2030"],
+        datasets: [
+          {
+            label: "Demand",
+            data: [34, 36, 38, 39, 40],
+            borderColor: "#8acb84",
+            backgroundColor: "rgba(255, 107, 107, 0.1)",
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: "Supply",
+            data: [35, 37, 39, 41, 43],
+            borderColor: "#204a35",
+            backgroundColor: "rgba(78, 205, 196, 0.1)",
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
+        scales: {
+          y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
+          x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
+        }
+      }
+    });
   }
 
-  function updateCharts() {
-    // Get current data
-    const rows = [...document.querySelectorAll("#energy-table tbody tr.energy-row")];
-    const totalCap = rows.reduce((sum, row) => {
-      const type = row.dataset.type;
-      return sum + num(document.getElementById(`cap-${type}`)?.textContent, 0);
-    }, 0);
-
-    // Update Demand chart "Supply" line
-    if (demandChart) {
-      demandChart.data.datasets[1].data = [ totalCap, totalCap, totalCap, totalCap, totalCap];
-      demandChart.update();
-    }
-
-    // Update Fuel Mix pie
-    if (fuelChart) {
-      const capacities = ["gas", "wind", "oil", "nuclear", "offshore", "solar", "hydro"].map(
-        type => num(document.getElementById(`cap-${type}`)?.textContent, 0)
-      );
-      fuelChart.data.datasets[0].data = capacities;
-      fuelChart.update();
-    }
-
-    // Update GGE bar
-    const currentGGE = num(document.getElementById("goal-gge-current")?.textContent, 0);
-    if (ggeChart) {
-      ggeChart.data.datasets[0].data = [ currentGGE , currentGGE , currentGGE , currentGGE , currentGGE];
-      ggeChart.update();
-    }
+  // Fuel Mix doughnut
+  const fuelCtx = document.getElementById(ids.fuelCanvasId)?.getContext("2d");
+  if (fuelCtx && !charts[level].fuel) {
+    charts[level].fuel = new Chart(fuelCtx, {
+      type: "doughnut",
+      data: {
+        labels: ["Gas", "Wind", "Oil", "Nuclear", "Offshore", "Solar", "Hydro"],
+        datasets: [
+          {
+            data: [40, 32, 18, 5, 3, 1, 1],
+            backgroundColor: ["#b7e4c7", "#95d5b2", "#52b788", "#40916c", "#2d6a4f", "#1b4332", "#081c15"],
+            borderColor: "rgba(0,0,0,0.2)",
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: "#fff", font: { size: 11 } } } }
+      }
+    });
   }
+
+  // GGE line
+  const ggeCtx = document.getElementById(ids.ggeCanvasId)?.getContext("2d");
+  if (ggeCtx && !charts[level].gge) {
+    charts[level].gge = new Chart(ggeCtx, {
+      type: "line",
+      data: {
+        labels: ["2026", "2027", "2028", "2029", "2030"],
+        datasets: [
+          {
+            label: "GGE Emissions (MtCO2eq)",
+            data: [29, 28, 27, 26.5, 26],
+            borderColor: "#40916c",
+            backgroundColor: "rgba(64, 145, 108, 0.15)",
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
+        scales: {
+          y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
+          x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
+        }
+      }
+    });
+  }
+}
+
+function updateChartsForLevel(level) {
+  if (level !== 1 && level !== 2) return;
+
+  const ids = chartIds(level);
+  const typesOrder = ["gas", "wind", "oil", "nuclear", "offshore", "solar", "hydro"];
+
+  const capFor = (type) =>
+    num(document.getElementById(`cap-${type}${ids.suffix}`)?.textContent, 0);
+
+  const rows = [...document.querySelectorAll(`${ids.tableSelector} tbody tr.energy-row`)];
+  const totalCap = rows.reduce((sum, row) => sum + capFor(row.dataset.type), 0);
+
+  // Demand chart supply line
+  if (charts[level].demand) {
+    charts[level].demand.data.datasets[1].data = Array(5).fill(totalCap);
+    charts[level].demand.update();
+  }
+
+  // Fuel chart capacities
+  if (charts[level].fuel) {
+    charts[level].fuel.data.datasets[0].data = typesOrder.map(capFor);
+    charts[level].fuel.update();
+  }
+
+  // GGE chart (flat line at current gge)
+  const currentGGE = num(document.getElementById(ids.ggeGoalId)?.textContent, 0);
+  if (charts[level].gge) {
+    charts[level].gge.data.datasets[0].data = Array(5).fill(currentGGE);
+    charts[level].gge.update();
+  }
+}
 });

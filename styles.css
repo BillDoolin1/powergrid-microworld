@@ -416,7 +416,7 @@ button[type="submit"] {
 
 
 /* Charts section */
-#charts-section {
+#charts-section, #chart-section-2 {
   display: flex;
   gap: 20px;
   margin-top: 20px;
@@ -427,7 +427,10 @@ button[type="submit"] {
 
 #demand-chart-container,
 #fuel-chart-container,
-#gge-chart-container {
+#gge-chart-container,
+#demand-chart-container-2,
+#fuel-chart-container-2,
+#gge-chart-container-2  {
   flex: 1;
   min-width: 300px;
   background: rgba(255,255,255,0.08);
@@ -437,7 +440,10 @@ button[type="submit"] {
 
 #demand-chart-container h4,
 #fuel-chart-container h4,
-#gge-chart-container h4 {
+#gge-chart-container h4,
+#demand-chart-container-2 h4,
+#fuel-chart-container-2 h4,
+#gge-chart-container-2 h4 {
   margin: 0 0 12px 0;
   text-align: center;
   color: #fff;
