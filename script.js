@@ -601,11 +601,17 @@ function updateChartsForLevel(level) {
     charts[level].fuel.update();
   }
 
-  // GGE chart (flat line at current gge)
-  const currentGGE = num(document.getElementById(ids.ggeGoalId)?.textContent, 0);
-  if (charts[level].gge) {
-    charts[level].gge.data.datasets[0].data = Array(5).fill(currentGGE);
-    charts[level].gge.update();
-  }
+const currentGGE = num(document.getElementById(ids.ggeGoalId)?.textContent, 0);
+
+if (charts[level].gge) {
+  charts[level].gge.data.datasets[0].data = [
+    currentGGE + 5,
+    currentGGE + 4,
+    currentGGE + 2,
+    currentGGE + 0.5,
+    currentGGE
+  ];
+  charts[level].gge.update();
+}
 }
 });
