@@ -362,16 +362,18 @@ function checkLevel1CompletionAndUnlockNext() {
 });
 
 document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
+  // Close completion overlay
   const overlay = document.getElementById("level-complete-overlay");
   if (overlay) overlay.style.display = "none";
 
-  // Exit level 1 screen, go back to menu and auto-open level 2
+  // Go back to level select screen (do NOT auto-start level 2)
   level1Screen.style.display = "none";
   levelSelectContainer.style.display = "flex";
 
-  const level2Btn = document.querySelector('.level-btn[data-level="2"]');
-  level2Btn?.click();
+  // Optional: keep currentLevel accurate
+  currentLevel = null;
 });
+
  
     }
 
