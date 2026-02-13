@@ -40,16 +40,18 @@ function showLevelComplete() {
 }
 
 function checkLevel1CompletionAndUnlockNext() {
-  const capMet = document.getElementById("goal-capacity-status")?.textContent.trim() === "✓";
-  const ggeMet = document.getElementById("goal-gge-status")?.textContent.trim() === "✓";
-  const budMet = document.getElementById("goal-budget-status")?.textContent.trim() === "✓";
+  const capMet = document.getElementById("goal-capacity-status")?.textContent.trim();
+  const ggeMet = document.getElementById("goal-gge-status")?.textContent.trim();
+  const budMet = document.getElementById("goal-budget-status")?.textContent.trim();
 
-  if (capMet && ggeMet && budMet && !levelCompleted[1]) {
+  if (capMet === "✓" && ggeMet === "✓" && budMet === "✓" && !levelCompleted[1]) {
     levelCompleted[1] = true;
     unlockLevel2();
+    refreshLevelButtons();   // <-- add this
     showLevelComplete();
   }
 }
+
 
 
   function setText(id, value) {
@@ -283,33 +285,35 @@ function checkLevel1CompletionAndUnlockNext() {
   });
 
   // ---- Level selection ----
-  levelButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const level = Number(btn.dataset.level);
-      if (btn.disabled) return;
+levelButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const level = Number(btn.dataset.level);
 
-      currentLevel = level;
-      levelSelectContainer.style.display = "none";
+    // Block if disabled or already completed
+    if (btn.disabled || levelCompleted[level]) return;
 
-      if (level === 1) {
-        level1Screen.style.display = "flex";
-        startTimer();
-        setupPauseListeners();
+    currentLevel = level;
+    levelSelectContainer.style.display = "none";
 
-        initStartingUnitsIfEmpty();
-        setTimeout(() => {
-          if (!demandChart) initCharts();
-          recomputeAll();
-        }, 100);
-      } else if (level === 2) {
-        document.getElementById("level-2-screen").style.display = "flex";
-        startTimer();
-      } else if (level === 3) {
-        document.getElementById("level-3-screen").style.display = "flex";
-        startTimer();
-      }
-    });
+    if (level === 1) {
+      level1Screen.style.display = "flex";
+      startTimer();
+      setupPauseListeners();
+      initStartingUnitsIfEmpty();
+      setTimeout(() => {
+        if (!demandChart) initCharts();
+        recomputeAll();
+      }, 100);
+    } else if (level === 2) {
+      document.getElementById("level-2-screen").style.display = "flex";
+      startTimer();
+    } else if (level === 3) {
+      document.getElementById("level-3-screen").style.display = "flex";
+      startTimer();
+    }
   });
+});
+
 
   // ---- Stepper: changes additional units ----
   document.addEventListener("click", (e) => {
@@ -416,6 +420,22 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
       }
     }, 1000);
   }
+
+  function refreshLevelButtons() {
+  levelButtons.forEach((btn) => {
+    const level = Number(btn.dataset.level);
+
+    // If a level is marked completed, show it and disable it.
+    if (levelCompleted[level]) {
+      btn.classList.add("completed");
+      btn.disabled = true;
+    }
+
+    // Existing lock logic for future levels stays as-is
+    // (Level 2 gets unlocked by unlockLevel2()).
+  });
+}
+
 
   function updateTimerDisplay() {
     const timerEl = document.getElementById("timer");

@@ -515,3 +515,17 @@ button[type="submit"] {
 }
 
 .level-btn.locked{ opacity: 0.7; }
+
+
+
+.level-btn.completed {
+  background: #002d10;
+  cursor: default;
+  opacity: 0.6;
+  position: relative;
+}
+
+.level-btn.completed::after {
+  content: " (Completed)";
+  font-size: 0.9rem;
+}
