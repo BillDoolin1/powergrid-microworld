@@ -94,25 +94,21 @@ function checkLevel1CompletionAndUnlockNext() {
     });
     return reduction;
   }
-
+  function sfx() { return currentLevel === 2 ? "2" : ""; }
   // ---- Rows: additional units add on top of base cap/gge ----
   function getUnits(type) {
-    const el = document.getElementById(`units-${type}`);
-    return clampInt(el?.textContent || "0");
+    return clampInt(document.getElementById(`units-${type}${sfx()}`)?.textContent, 0);
   }
-
   function setUnits(type, units) {
-    const el = document.getElementById(`units-${type}`);
+    const el = document.getElementById(`units-${type}${sfx()}`);
     if (el) el.textContent = String(Math.max(0, units));
   }
-
   function setCap(type, value) {
-    const el = document.getElementById(`cap-${type}`);
+    const el = document.getElementById(`cap-${type}${sfx()}`);
     if (el) el.textContent = Number(value).toFixed(2);
   }
-
   function setGge(type, value) {
-    const el = document.getElementById(`gge-${type}`);
+    const el = document.getElementById(`gge-${type}${sfx()}`);
     if (el) el.textContent = Number(value).toFixed(2);
   }
 
@@ -152,57 +148,73 @@ function checkLevel1CompletionAndUnlockNext() {
     }, 0);
   }
 
-  function recomputeTotalsGoalsBudget() {
-    const rows = [...document.querySelectorAll("#energy-table tbody tr.energy-row")];
+function recomputeTotalsGoalsBudget() {
+  const isL2 = currentLevel === 2;
 
-    const totals = rows.reduce((acc, row) => {
+  // Pick correct IDs for the active level
+  const tableId = isL2 ? "energy-table-2" : "energy-table";
+  const suf = isL2 ? "2" : ""; // for cap-oil2, gge-gas2, etc.
+
+  const idCapTotal = isL2 ? "cap-total2" : "cap-total";
+  const idGgeTotal = isL2 ? "gge-total2" : "gge-total";
+
+  const idGoalCapCurrent = isL2 ? "goal2-capacity-current" : "goal-capacity-current";
+  const idGoalCapTarget   = isL2 ? "goal2-capacity-target"  : "goal-capacity-target";
+  const idGoalCapStatus   = isL2 ? "goal2-capacity-status"  : "goal-capacity-status";
+
+  const idGoalGgeCurrent = isL2 ? "goal2-gge-current" : "goal-gge-current";
+  const idGoalGgeTarget  = isL2 ? "goal2-gge-target"  : "goal-gge-target";
+  const idGoalGgeStatus  = isL2 ? "goal2-gge-status"  : "goal-gge-status";
+
+  const idBudgetSpent     = isL2 ? "budget2-spent"     : "budget-spent";
+  const idBudgetRemaining = isL2 ? "budget2-remaining" : "budget-remaining";
+  const idGoalBudgetStatus= isL2 ? "goal2-budget-status": "goal-budget-status";
+
+  // Sum capacity & gge by reading the cap-*/gge-* spans (with suffix if Level 2)
+  const rows = [...document.querySelectorAll(`#${tableId} tbody tr.energy-row`)];
+  const totals = rows.reduce(
+    (acc, row) => {
       const type = row.dataset.type;
-      acc.capacity += num(document.getElementById(`cap-${type}`)?.textContent, 0);
-      acc.gge += num(document.getElementById(`gge-${type}`)?.textContent, 0);
+      acc.capacity += num(document.getElementById(`cap-${type}${suf}`)?.textContent, 0);
+      acc.gge      += num(document.getElementById(`gge-${type}${suf}`)?.textContent, 0);
       return acc;
-    }, { capacity: 0, gge: 0 });
+    },
+    { capacity: 0, gge: 0 }
+  );
 
-    // Totals row in table (pure table sum)
-    setFixed("cap-total", totals.capacity, 2);
-    setFixed("gge-total", totals.gge, 2);
+  // Write totals into the correct totals row
+  setFixed(idCapTotal, totals.capacity, 2);
+  setFixed(idGgeTotal, totals.gge, 2);
 
-    // GGE: base GGE MINUS investment reduction (investments directly reduce GGE)
-    const ggeReduction = investmentGgeReduction();
-    const ggeAfterReduction = Math.max(0, totals.gge - ggeReduction);
+  // Investment reduction (NOTE: if you later want separate investments per level,
+  // you'll need a level-aware investment selector too)
+  const ggeReduction = investmentGgeReduction();
+  const ggeAfterReduction = Math.max(0, totals.gge - ggeReduction);
 
-    setFixed("goal-capacity-current", totals.capacity, 2);
-    setFixed("goal-gge-current", ggeAfterReduction, 2);
+  // Write goal current values
+  setFixed(idGoalCapCurrent, totals.capacity, 2);
+  setFixed(idGoalGgeCurrent, ggeAfterReduction, 2);
 
-    // Budget from units + investments
-    const spent = unitSpendM() + investmentSpendM();
-    const remaining = STATE.budgetTotalM - spent;
+  // Budget values (unitSpendM currently reads Level 1 table only in your file,
+  // but this at least writes to the right labels)
+  const spent = unitSpendM() + investmentSpendM();
+  const remaining = STATE.budgetTotalM - spent;
 
-    setText("budget-spent", spent.toFixed(0));
-    setText("header-budget-spent", (spent.toFixed(0)/1000));
-    setText("budget-remaining", remaining.toFixed(0));
-    
+  setText(idBudgetSpent, spent.toFixed(0));
+  setText(idBudgetRemaining, remaining.toFixed(0));
 
-    // ========== UPDATE GOAL STATUSES ==========
-    const capacityTarget = num(document.getElementById("goal-capacity-target")?.textContent, 50);
-    const ggeTarget = num(document.getElementById("goal-gge-target")?.textContent, 24);
-    const budgetTotal = STATE.budgetTotalM;
+  // Targets + status checks
+  const capacityTarget = num(document.getElementById(idGoalCapTarget)?.textContent, 50);
+  const ggeTarget      = num(document.getElementById(idGoalGgeTarget)?.textContent, 24);
+  const budgetTotal    = STATE.budgetTotalM;
 
-    // Goal 1: Capacity ≥ demand
-    const capacityMet = totals.capacity >= capacityTarget;
-    updateGoalStatus("goal-capacity-status", capacityMet);
+  updateGoalStatus(idGoalCapStatus, totals.capacity >= capacityTarget);
+  updateGoalStatus(idGoalGgeStatus, ggeAfterReduction <= ggeTarget);
+  updateGoalStatus(idGoalBudgetStatus, spent <= budgetTotal);
 
-    // Goal 2: GGE ≤ target (after reduction)
-    const ggeMet = ggeAfterReduction <= ggeTarget;
-    updateGoalStatus("goal-gge-status", ggeMet);
-
-    // Goal 3: Spent ≤ budget
-    const budgetMet = spent <= budgetTotal;
-    updateGoalStatus("goal-budget-status", budgetMet);
-
-
-    checkLevel1CompletionAndUnlockNext();
-
-  }
+  // Only Level 1 unlock logic (keep as you had it)
+  if (!isL2) checkLevel1CompletionAndUnlockNext();
+}
 
   // Update goal status icon
   function updateGoalStatus(elementId, isMet) {
@@ -607,7 +619,7 @@ if (charts[level].gge) {
   charts[level].gge.data.datasets[0].data = [
     currentGGE + 5,
     currentGGE + 4,
-    currentGGE + 2,
+    currentGGE + 3,
     currentGGE + 0.5,
     currentGGE
   ];
