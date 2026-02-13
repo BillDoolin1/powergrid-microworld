@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const welcomeFlash = document.getElementById("welcome-flash");
   const levelSelectContainer = document.getElementById("level-select-container");
   const level1Screen = document.getElementById("level-1-screen");
+  const level2Screen = document.getElementById("level-2-screen");
+
   const nameForm = document.getElementById("name-form");
   const nameInput = document.getElementById("player-name");
   const levelButtons = document.querySelectorAll(".level-btn");
@@ -305,9 +307,15 @@ levelButtons.forEach((btn) => {
         recomputeAll();
       }, 100);
     } else if (level === 2) {
-      document.getElementById("level-2-screen").style.display = "flex";
+      level2Screen.style.display = "flex";
       startTimer();
-    } else if (level === 3) {
+      setupPauseListeners();
+      initStartingUnitsIfEmpty();
+      setTimeout(() => {
+        if (!demandChart) initCharts();
+        recomputeAll();
+      }, 100);   
+     } else if (level === 3) {
       document.getElementById("level-3-screen").style.display = "flex";
       startTimer();
     }
@@ -445,6 +453,9 @@ document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
       timerEl.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
   }
+
+
+
 
   // ========== CHART INITIALIZATION & UPDATES ==========
   let demandChart = null;
