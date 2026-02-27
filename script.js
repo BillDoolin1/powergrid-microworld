@@ -35,9 +35,9 @@ const LEVELS = {
     years: [2026, 2027, 2028],
     startingMix: { },
     // targets tighten each year
-    capacityTargetByYear: { 2026: 34, 2027: 37, 2028: 40 },
-    ggeTargetByYear:      { 2026: 22, 2027: 20, 2028: 18 },
-    demandByYear:         { 2026: 34, 2027: 36, 2028: 38 },
+    capacityTargetByYear: { 2026: 34, 2027: 37, 2028: 40, 2029: 41, 2030: 42 },
+    ggeTargetByYear:      { 2026: 22, 2027: 21, 2028: 20, 2029: 19, 2030: 18 },
+    demandByYear:         { 2026: 34, 2027: 36, 2028: 38, 2029: 40, 2030: 42 },
     investments: [
       { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
       { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
@@ -104,7 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const levelCompleteOverlay = document.getElementById("level-complete-overlay");
   const levelCompleteTitle   = document.getElementById("level-complete-title");
   const levelCompleteBody    = document.getElementById("level-complete-body");
-  const nextLevelBtn         = document.getElementById("next-level-btn");
   const closeLevelCompleteBtn= document.getElementById("close-level-complete-btn");
   const redoBtn              = document.getElementById("redo-btn");
   const viewLevelBtn         = document.getElementById("view-level-btn");
@@ -411,7 +410,6 @@ document.addEventListener("DOMContentLoaded", () => {
          ? `Level ${nextLevel} has been unlocked. Head back to the menu to try it!`
          : "Amazing! You have completed all levels!"}`;                                 // a bit compliocated for no reason 
 
-    nextLevelBtn.style.display = hasNext ? "inline-block" : "none";
     if (hasNext) unlockLevel(nextLevel);
     // Freeze timer on completion
     gamePaused = true;
@@ -739,14 +737,6 @@ document.addEventListener("DOMContentLoaded", () => {
     levelSelectContainer.style.display = "flex";
     currentLevel = null;
     refreshLevelButtons();
-  });
-
-  nextLevelBtn.addEventListener("click", () => {
-    levelCompleteOverlay.style.display = "none";
-    levelScreen.style.display = "none";
-    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-    levelSelectContainer.style.display = "flex";
-    currentLevel = null;
   });
 
   // ============================================================
