@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     levelSelectContainer.style.display = "none";
     levelScreen.style.display          = "flex";
 
-    startTimer();
+    startFreshTimer();
 
     // Init charts after a short delay to ensure canvas is rendered
     setTimeout(() => {
@@ -392,6 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isLastYear) return;
     if (levelCompleted[currentLevel]) return;
     levelCompleted[currentLevel] = true;
+    
 
     // Save best time
     const finishTime = gameTimer;
@@ -408,11 +409,16 @@ document.addEventListener("DOMContentLoaded", () => {
       Best time: <strong>${formatTime(bestTimes[currentLevel])}</strong><br><br>
       ${hasNext
          ? `Level ${nextLevel} has been unlocked. Head back to the menu to try it!`
-         : "Amazing! You have completed all levels!"}`;
+         : "Amazing! You have completed all levels!"}`;                                 // a bit compliocated for no reason 
 
     nextLevelBtn.style.display = hasNext ? "inline-block" : "none";
     if (hasNext) unlockLevel(nextLevel);
-
+    // Freeze timer on completion
+    gamePaused = true;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
     levelCompleteOverlay.style.display = "flex";
     refreshLevelButtons();
   }
@@ -649,14 +655,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Timer
   // ============================================================
-  function startTimer() {
+  function startFreshTimer() {
     gameTimer = 0;
     updateTimerDisplay();
+    startTimerInterval();
+  }
+
+  function startTimerInterval() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-      if (!gamePaused) { gameTimer++; updateTimerDisplay(); }
+      if (!gamePaused) {
+        gameTimer++;
+        updateTimerDisplay();
+      }
     }, 1000);
   }
+
 
   function updateTimerDisplay() {
     const m = Math.floor(gameTimer / 60).toString().padStart(2, "0");
@@ -684,27 +698,26 @@ document.addEventListener("DOMContentLoaded", () => {
   resumeBtn.addEventListener("click", () => {
     gamePaused = false;
     pauseOverlay.style.display = "none";
-    startTimer();
+    startTimerInterval(); // resumes from current gameTimer
   });
 
-resetBtn.addEventListener("click", () => {
-  pauseOverlay.style.display = "none";
-  gamePaused = false;
-  loadLevel(currentLevel);
-});
 
-  redoBtn.addEventListener("click", () => {
-  levelCompleteOverlay.style.display = "none";
-  levelCompleted[currentLevel] = false; // allow re-completion
-  loadLevel(currentLevel);
-});
+  resetBtn.addEventListener("click", () => {
+    pauseOverlay.style.display = "none";
+    gamePaused = false;
+    loadLevel(currentLevel);
+  });
 
-viewLevelBtn.addEventListener("click", () => {
-  levelCompleteOverlay.style.display = "none";
-});
+    redoBtn.addEventListener("click", () => {
+    levelCompleteOverlay.style.display = "none";
+    levelCompleted[currentLevel] = false; // allow re-completion
+    gamePaused = false;
+    loadLevel(currentLevel);
+  });
 
-
-
+  viewLevelBtn.addEventListener("click", () => {
+    levelCompleteOverlay.style.display = "none";
+  });
 
   exitBtn.addEventListener("click", () => {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
