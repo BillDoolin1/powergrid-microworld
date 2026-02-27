@@ -1,0 +1,544 @@
+/* ========== Global ========== */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #2d5a27, #4a7c59);
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ========== Start + Level Select ========== */
+#start-screen,
+#level-select-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#start-screen h1,
+#welcome-flash h1 {
+  font-size: 3rem;
+  margin-bottom: 24px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Welcome flash */
+#welcome-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 32px;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  text-align: center;
+  color: white;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
+  background: none;
+  border-radius: 0;
+  margin: 0;
+  max-width: 90vw;
+  backdrop-filter: none;
+}
+
+/* Level select text */
+.level-select-title {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.level-select-title h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  margin: 0 0 8px 0;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+}
+
+.level-select-title h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin: 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+  opacity: 0.9;
+}
+
+/* Level buttons */
+.level-select {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 40px 0;
+}
+
+.level-btn {
+  padding: 20px 40px;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.level-btn:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.level-btn.locked {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========== Game screen wrapper ========== */
+#game-screen {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* ========== Level 1 full-screen layout ========== */
+#level-1-screen, #level-2-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+}
+
+/* Header bar */
+.level-header {
+  flex: 0 0 auto;
+  height: 72px;
+  padding: 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+
+
+.level-header-budget {
+  font-size: 1.5rem;
+  font-family: monospace;
+  background: rgba(147, 183, 153, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+/* Timer + pause */
+.timer-pause {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+#timer {
+  font-size: 1.5rem;
+  font-family: monospace;
+  background: rgba(0,0,0,0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.timer-pause button {
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  position: relative;
+  z-index: 100;
+  min-height: 48px;
+  min-width: 80px;
+}
+
+.timer-pause button:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Content below header */
+#level-1-content, #level-2-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  padding: 16px;
+}
+
+/* Game area fills all remaining space */
+.game-area {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: rgba(255,255,255,0.15);
+  border-radius: 16px;
+  border: 3px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(15px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 0 50px rgba(0,0,0,0.2),
+    0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* ========== Goals corner ========== */
+#goals-corner, #goals-corner-2 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
+
+  width: fit-content;
+  height: fit-content;
+  max-width: min(50vw);
+  max-height: 45vh;
+
+  background: rgba(65, 147, 93, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.25);
+  padding: 16px 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  overflow: auto;
+  z-index: 50;
+}
+
+#goals-corner h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  text-align: left;
+  color: #eaffea;
+}
+
+.goal {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-size: 1.5rem;
+  line-height: 1.35;
+}
+
+.goal:last-child { border-bottom: none; }
+
+.goal-progress {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  text-align: right;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.95);
+}
+
+.goal-status {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  min-width: 22px;
+  text-align: center;
+}
+
+.goal-status.complete { color: #00fa1d;
+background: #ffffff;
+  padding: 2px 4px; }
+.goal-status.incomplete { color: #ff0000; 
+  background: #ffffff;
+  padding: 2px 4px; }
+
+/* ========== Pause overlay ========== */
+#pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pause-panel {
+  background: linear-gradient(135deg, #4a7c59, #2d5a27);
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.pause-panel button {
+  display: block;
+  width: 200px;
+  margin: 12px auto;
+  padding: 12px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#resume-btn { background: #4CAF50; color: white; }
+#reset-btn  { background: #ff9800; color: white; }
+#exit-btn   { background: #f44336; color: white; }
+
+/* ========== Form styling ========== */
+#start-screen form {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+input[type="text"] {
+  padding: 16px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+button[type="submit"] {
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ========== Energy table (top-left overlay) ========== */
+#energy-table-wrap, #energy-table-wrap-2 {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+
+  width: min(1350px, 100vw);
+  height: min(100vh);
+  max-height: none;
+
+  overflow-x: auto;
+  overflow-y: auto;
+
+  background: rgba(255,255,255,0.14);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+
+  padding: 10px;
+  max-height: 87vh;
+}
+
+#energy-table,#energy-table-2 {
+  width: 100%;
+  border-collapse: collapse;
+  color: #fff;
+  font-size: 0.86rem;
+}
+
+#energy-table caption, #energy-table-2 caption {
+  caption-side: top;
+  text-align: left;
+  padding: 6px 6px 10px 6px;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+#energy-table th,
+#energy-table td, #energy-table-2 th,
+#energy-table-2 td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#energy-table thead th,#energy-table-2 thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(12px);
+  z-index: 1;
+  text-align: left;
+}
+
+#energy-table tfoot th,
+#energy-table tfoot td, 
+#energy-table-2 tfoot th,
+#energy-table-2 tfoot td {
+  background: rgba(0,0,0,0.18);
+  font-weight: 800;
+}
+
+#energy-table .cap-value,
+#energy-table .units-value,
+#energy-table-2 .cap-value,
+#energy-table-2 .units-value {
+  font-family: monospace;
+}
+
+#energy-table td.adjust, #energy-table-2 td.adjust  { white-space: nowrap; }
+
+#energy-table .step, #energy-table-2 .step {
+  padding: 6px 10px;
+  margin: 0 4px;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+}
+
+#energy-table .step:hover, #energy-table-2 .step:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+
+
+/* Charts section */
+#charts-section, #chart-section-2 {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  border-top: 2px solid rgba(255,255,255,0.2);
+}
+
+#demand-chart-container,
+#fuel-chart-container,
+#gge-chart-container,
+#demand-chart-container-2,
+#fuel-chart-container-2,
+#gge-chart-container-2  {
+  flex: 1;
+  min-width: 300px;
+  background: rgba(255,255,255,0.08);
+  padding: 15px;
+  border-radius: 10px;
+}
+
+#demand-chart-container h4,
+#fuel-chart-container h4,
+#gge-chart-container h4,
+#demand-chart-container-2 h4,
+#fuel-chart-container-2 h4,
+#gge-chart-container-2 h4 {
+  margin: 0 0 12px 0;
+  text-align: center;
+  color: #fff;
+  font-size: 1rem;
+}
+
+/* ========== Investment panel (BOTTOM-RIGHT) ========== */
+#investment-panel, #investment-panel-2 {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  top: auto;
+  z-index: 65;
+
+
+  min-width: min(72vh);
+  max-width: min(100vh);
+  max-height: 55vh;
+
+  overflow-y: auto;
+  overflow-x: auto;
+
+  background: rgba(65, 147, 93, 0.85);
+  border: 2px solid rgba(99, 145, 114, 0.85);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 44px rgba(0,0,0,0.45);
+
+  padding: 16px;
+  color: #fff;
+}
+
+#investment-panel .invest-item, #investment-panel-2 .invest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  padding: 14px 12px;
+  margin: 10px 0;
+
+  background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+#investment-panel input[type="checkbox"], #investment-panel-2 input[type="checkbox"]  {
+  width: 22px;
+  height: 22px;
+  accent-color: #00e676;
+  flex: 0 0 auto;
+}
+
+
+#level-complete-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.level-complete-card{
+  width: min(520px, 92vw);
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(14px);
+  border-radius: 16px;
+  padding: 22px;
+  text-align: center;
+}
+
+.level-complete-card button{
+  margin: 10px 8px 0 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.level-btn.locked{ opacity: 0.7; }
+
+
+
+.level-btn.completed {
+  background: #002d10;
+  cursor: default;
+  opacity: 0.6;
+  position: relative;
+}
+
+.level-btn.completed::after {
+  content: " (Completed)";
+  font-size: 0.9rem;
+}

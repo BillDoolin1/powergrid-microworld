@@ -1,629 +1,723 @@
+// ============================================================
+//  Power Grid Microworld — script.js
+// ============================================================
+
+// ---- Energy source definitions (shared across all levels) ----
+const ENERGY_SOURCES = [
+  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 1.0, operating: 110, leadTime: 2 },
+  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 1.2, operating:  70, leadTime: 4 },
+  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 5 },
+  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 3 },
+  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 6 },
+  { type: "nuclear",  label: "Nuclear",       baseCap:  3.20, baseGge:  0.10, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 7 },
+  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 4 },
+];
+
+// ---- Level configurations ----
+const LEVELS = {
+  1: {
+    name: "Tutorial",
+    budgetM: 5000,
+    capacityTarget: 50,
+    ggeTarget: 24,
+    years: [2026],
+    startingMix: {},
+    demandByYear: { 2026: 34 },
+    investments: [
+      { id: "solar-grant",  label: "Home Solar Panel Grant",  costM:  75, ggeReduction: 2.0 },
+      { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
+      { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
+    ],
+  },
+  2: {
+    name: "Near-Term Planning",
+    budgetM: 2000,
+    years: [2026, 2027, 2028],
+    startingMix: { gas: 3, oil: 2, wind: 1 },
+    // targets tighten each year
+    capacityTargetByYear: { 2026: 34, 2027: 37, 2028: 40 },
+    ggeTargetByYear:      { 2026: 22, 2027: 20, 2028: 18 },
+    demandByYear:         { 2026: 34, 2027: 36, 2028: 38 },
+    investments: [
+      { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
+      { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
+      { id: "ev-subsidy",   label: "EV Subsidy Scheme",        costM: 150, ggeReduction: 4.0 },
+    ],
+  },
+  3: {
+    name: "2030 Net Zero Challenge",
+    budgetM: 1000,
+    years: [2026, 2027, 2028, 2029, 2030],
+    startingMix: { gas: 5, oil: 3, wind: 2, nuclear: 1 },
+    capacityTargetByYear: { 2026: 34, 2027: 38, 2028: 44, 2029: 52, 2030: 60 },
+    ggeTargetByYear:      { 2026: 20, 2027: 17, 2028: 14, 2029: 12, 2030: 10 },
+    demandByYear:         { 2026: 34, 2027: 36, 2028: 38, 2029: 39, 2030: 40 },
+    investments: [
+      { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
+      { id: "carbon-tax",   label: "Carbon Tax",               costM:  50, ggeReduction: 6.0 },
+      { id: "ev-subsidy",   label: "EV Subsidy Scheme",        costM: 150, ggeReduction: 4.0 },
+      { id: "smart-grid",   label: "Smart Grid Investment",    costM: 300, ggeReduction: 2.0 },
+    ],
+  },
+};
+
+// ============================================================
+//  Bootstrap on DOM ready
+// ============================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Elements
-  const startScreen = document.getElementById("start-screen");
-  const gameScreen = document.getElementById("game-screen");
-  const welcomeFlash = document.getElementById("welcome-flash");
+
+  // ---- DOM refs (stable, single-instance elements) ----
+  const startScreen          = document.getElementById("start-screen");
+  const gameScreen           = document.getElementById("game-screen");
+  const welcomeFlash         = document.getElementById("welcome-flash");
   const levelSelectContainer = document.getElementById("level-select-container");
-  const level1Screen = document.getElementById("level-1-screen");
-  const level2Screen = document.getElementById("level-2-screen");
+  const levelScreen          = document.getElementById("level-screen");
+  const levelButtons         = document.querySelectorAll(".level-btn");
 
-  const nameForm = document.getElementById("name-form");
+  const nameForm  = document.getElementById("name-form");
   const nameInput = document.getElementById("player-name");
-  const levelButtons = document.querySelectorAll(".level-btn");
 
-  // Game state
+  // Header
+  const levelTitle           = document.getElementById("level-title");
+  const headerBudgetSpent    = document.getElementById("header-budget-spent");
+  const headerBudgetRemaining= document.getElementById("header-budget-remaining");
+  const yearControls         = document.getElementById("year-controls");
+  const currentYearLabel     = document.getElementById("current-year-label");
+  const prevYearBtn          = document.getElementById("prev-year-btn");
+  const nextYearBtn          = document.getElementById("next-year-btn");
+  const timerEl              = document.getElementById("timer");
+  const pauseBtn             = document.getElementById("pause-btn");
+
+  // Game area
+  const goalsTitle           = document.getElementById("goals-title");
+  const goalsList            = document.getElementById("goals-list");
+  const energyTableBody      = document.getElementById("energy-table-body");
+  const investmentList       = document.getElementById("investment-list");
+  const capTotalEl           = document.getElementById("cap-total");
+  const ggeTotalEl           = document.getElementById("gge-total");
+
+  // Overlays
+  const pauseOverlay         = document.getElementById("pause-overlay");
+  const resumeBtn            = document.getElementById("resume-btn");
+  const resetBtn             = document.getElementById("reset-btn");
+  const exitBtn              = document.getElementById("exit-btn");
+  const levelCompleteOverlay = document.getElementById("level-complete-overlay");
+  const levelCompleteTitle   = document.getElementById("level-complete-title");
+  const levelCompleteBody    = document.getElementById("level-complete-body");
+  const nextLevelBtn         = document.getElementById("next-level-btn");
+  const closeLevelCompleteBtn= document.getElementById("close-level-complete-btn");
+
+  // ---- Game state ----
   const levelCompleted = { 1: false, 2: false, 3: false };
-  let currentLevel = null;
-  let gameTimer = 0;
-  let timerInterval = null;
-  let gamePaused = false;
+  let currentLevel     = null;
+  let currentConfig    = null;
+  let currentYearIndex = 0;
+  let gameTimer        = 0;
+  let timerInterval    = null;
+  let gamePaused       = false;
 
-  // Budget: €2B stored as €M
-  const STATE = {
-    budgetTotalM: 5000,
-    unitDiscount: 0.10 // 90% cheaper => pay 10%
-  };
+  // Unit counts stored in JS state (not in the DOM)
+  // unitState[type] = number of additional units
+  let unitState = {};
 
+  // Chart instances
+  let charts = { demand: null, fuel: null, gge: null };
+
+  // ============================================================
+  //  Utility helpers
+  // ============================================================
   function num(val, fallback = 0) {
     const n = parseFloat(String(val).replace(/[^\d.-]/g, ""));
     return Number.isFinite(n) ? n : fallback;
   }
 
-  function unlockLevel2() {
-  const btn = document.querySelector('.level-btn[data-level="2"]');
-  if (!btn) return;
-  btn.disabled = false;
-  btn.classList.remove("locked"); // toggle class via classList [web:367]
-}
-
-function showLevelComplete() {
-  const overlay = document.getElementById("level-complete-overlay");
-  if (overlay) overlay.style.display = "flex";
-}
-
-function checkLevel1CompletionAndUnlockNext() {
-  const capMet = document.getElementById("goal-capacity-status")?.textContent.trim();
-  const ggeMet = document.getElementById("goal-gge-status")?.textContent.trim();
-  const budMet = document.getElementById("goal-budget-status")?.textContent.trim();
-
-  if (capMet === "✓" && ggeMet === "✓" && budMet === "✓" && !levelCompleted[1]) {
-    levelCompleted[1] = true;
-    unlockLevel2();
-    refreshLevelButtons();   // <-- add this
-    showLevelComplete();
+  function getSource(type) {
+    return ENERGY_SOURCES.find(s => s.type === type);
   }
-}
 
+  function currentYear() {
+    return currentConfig.years[currentYearIndex];
+  }
 
+  function capacityTarget() {
+    const cfg = currentConfig;
+    return cfg.capacityTargetByYear
+      ? cfg.capacityTargetByYear[currentYear()]
+      : cfg.capacityTarget;
+  }
+
+  function ggeTarget() {
+    const cfg = currentConfig;
+    return cfg.ggeTargetByYear
+      ? cfg.ggeTargetByYear[currentYear()]
+      : cfg.ggeTarget;
+  }
+
+  // ============================================================
+  //  Level loading
+  // ============================================================
+  function loadLevel(levelNum) {
+    currentLevel     = levelNum;
+    currentConfig    = LEVELS[levelNum];
+    currentYearIndex = 0;
+    unitState        = {};
+
+    // Initialise units from startingMix
+    ENERGY_SOURCES.forEach(s => {
+      unitState[s.type] = currentConfig.startingMix[s.type] || 0;
+    });
+
+    // Header
+    levelTitle.textContent = `Level ${levelNum}: ${currentConfig.name}`;
+    headerBudgetSpent.textContent    = "0";
+    headerBudgetRemaining.textContent = currentConfig.budgetM;
+
+    // Year controls
+    if (currentConfig.years.length > 1) {
+      yearControls.style.display = "flex";
+      currentYearLabel.textContent = currentYear();
+      prevYearBtn.disabled = true;
+      nextYearBtn.disabled = false;
+      nextYearBtn.textContent = "Next Year \u25B6";
+    } else {
+      yearControls.style.display = "none";
+    }
+
+    // Render dynamic sections
+    renderGoals();
+    renderEnergyTable();
+    renderInvestments();
+
+    // Show level screen
+    levelSelectContainer.style.display = "none";
+    levelScreen.style.display          = "flex";
+
+    startTimer();
+
+    // Init charts after a short delay to ensure canvas is rendered
+    setTimeout(() => {
+      initCharts();
+      recomputeAll();
+    }, 120);
+  }
+
+  // ============================================================
+  //  Render: Goals
+  // ============================================================
+  function renderGoals() {
+    goalsTitle.textContent = `Level ${currentLevel} Goals`;
+    goalsList.innerHTML = `
+      <div class="goal" id="goal-capacity">
+        <span>Match Projected Demand</span>
+        <span class="goal-progress">
+          <span id="goal-cap-current">0.00</span> /
+          <span id="goal-cap-target">${capacityTarget()}</span> TWh
+        </span>
+        <span class="goal-status incomplete" id="goal-cap-status">&#10007;</span>
+      </div>
+      <div class="goal" id="goal-gge">
+        <span>Reduce Greenhouse Gas Emissions</span>
+        <span class="goal-progress">
+          <span id="goal-gge-current">0.00</span> /
+          <span id="goal-gge-target">${ggeTarget()}</span> MtCO&#8322;eq
+        </span>
+        <span class="goal-status incomplete" id="goal-gge-status">&#10007;</span>
+      </div>
+      <div class="goal" id="goal-budget">
+        <span>Stay Within Budget</span>
+        <span class="goal-progress">
+          &euro;<span id="goal-budget-spent">0</span>M spent
+          (&euro;<span id="goal-budget-remaining">${currentConfig.budgetM}</span>M left)
+        </span>
+        <span class="goal-status incomplete" id="goal-budget-status">&#10007;</span>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  //  Render: Energy Table rows
+  // ============================================================
+  function renderEnergyTable() {
+    energyTableBody.innerHTML = ENERGY_SOURCES.map(s => `
+      <tr class="energy-row" data-type="${s.type}">
+        <th scope="row">${s.label}</th>
+        <td>${s.construct}M</td>
+        <td>${s.leadTime}</td>
+        <td>${s.operating}</td>
+        <td><span id="pct-${s.type}">0</span>%</td>
+        <td><span id="gge-${s.type}">${s.baseGge.toFixed(2)}</span></td>
+        <td><span id="cap-${s.type}">${s.baseCap.toFixed(2)}</span></td>
+        <td><span id="units-${s.type}">${unitState[s.type]}</span></td>
+        <td class="adjust">
+          <button class="step up"   aria-label="Add ${s.label} unit">&#9650;</button>
+          <button class="step down" aria-label="Remove ${s.label} unit">&#9660;</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // ============================================================
+  //  Render: Investments
+  // ============================================================
+  function renderInvestments() {
+    investmentList.innerHTML = currentConfig.investments.map(inv => `
+      <div class="invest-item">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1;">
+          <input type="checkbox"
+                 id="inv-${inv.id}"
+                 data-cost="${inv.costM}"
+                 data-gge-reduction="${inv.ggeReduction}">
+          <span>${inv.label} (Cost &euro;${inv.costM}M)</span>
+        </label>
+      </div>
+    `).join("");
+  }
+
+  // ============================================================
+  //  Recompute: units → cap/gge per row
+  // ============================================================
+  function recomputeRows() {
+    ENERGY_SOURCES.forEach(s => {
+      const units = unitState[s.type] || 0;
+      const cap   = s.baseCap + units * s.unitCap;
+      const gge   = s.baseGge + units * s.unitGge;
+      const capEl   = document.getElementById(`cap-${s.type}`);
+      const ggeEl   = document.getElementById(`gge-${s.type}`);
+      const unitsEl = document.getElementById(`units-${s.type}`);
+      if (capEl)   capEl.textContent   = cap.toFixed(2);
+      if (ggeEl)   ggeEl.textContent   = gge.toFixed(2);
+      if (unitsEl) unitsEl.textContent = String(units);
+    });
+  }
+
+  // ============================================================
+  //  Recompute: totals, goals, budget
+  // ============================================================
+  function recomputeTotals() {
+    let totalCap = 0;
+    let totalGge = 0;
+
+    ENERGY_SOURCES.forEach(s => {
+      const units = unitState[s.type] || 0;
+      totalCap += s.baseCap + units * s.unitCap;
+      totalGge += s.baseGge + units * s.unitGge;
+    });
+
+    // Investment reductions
+    const invCheckboxes = [...document.querySelectorAll("#investment-list input[type='checkbox']")];
+    let invSpendM     = 0;
+    let ggeReduction  = 0;
+    invCheckboxes.forEach(cb => {
+      if (!cb.checked) return;
+      invSpendM    += num(cb.dataset.cost, 0);
+      ggeReduction += num(cb.dataset.ggeReduction, 0);
+    });
+
+    const ggeNet = Math.max(0, totalGge - ggeReduction);
+
+    // Unit spend
+    const unitSpend = ENERGY_SOURCES.reduce((sum, s) => {
+      const units = unitState[s.type] || 0;
+      const costPerUnit = (s.construct + s.operating * 4) * 0.10;
+      return sum + units * costPerUnit;
+    }, 0);
+
+    const totalSpent     = unitSpend + invSpendM;
+    const totalRemaining = currentConfig.budgetM - totalSpent;
+
+    // Update totals row
+    capTotalEl.textContent = totalCap.toFixed(2);
+    ggeTotalEl.textContent = totalGge.toFixed(2);
+
+    // Update header budget
+    headerBudgetSpent.textContent     = totalSpent.toFixed(0);
+    headerBudgetRemaining.textContent = totalRemaining.toFixed(0);
+
+    // Update goal displays
+    setText("goal-cap-current",      totalCap.toFixed(2));
+    setText("goal-gge-current",      ggeNet.toFixed(2));
+    setText("goal-budget-spent",     totalSpent.toFixed(0));
+    setText("goal-budget-remaining", totalRemaining.toFixed(0));
+
+    // Percentage of grid per source
+    ENERGY_SOURCES.forEach(s => {
+      const cap = s.baseCap + (unitState[s.type] || 0) * s.unitCap;
+      const pct = totalCap > 0 ? ((cap / totalCap) * 100).toFixed(1) : "0.0";
+      const el = document.getElementById(`pct-${s.type}`);
+      if (el) el.textContent = pct;
+    });
+
+    // Goal statuses
+    const capMet    = totalCap  >= capacityTarget();
+    const ggeMet    = ggeNet    <= ggeTarget();
+    const budgetMet = totalSpent <= currentConfig.budgetM;
+
+    updateGoalStatus("goal-cap-status",    capMet);
+    updateGoalStatus("goal-gge-status",    ggeMet);
+    updateGoalStatus("goal-budget-status", budgetMet);
+
+    // Budget warning
+    headerBudgetRemaining.parentElement.classList.toggle("over-budget", totalSpent > currentConfig.budgetM);
+
+    // Check level completion
+    checkLevelCompletion(capMet, ggeMet, budgetMet);
+
+    return { totalCap, totalGge, ggeNet };
+  }
+
+  function updateGoalStatus(id, isMet) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = isMet ? "\u2713" : "\u2717";
+    el.className   = isMet ? "goal-status complete" : "goal-status incomplete";
+  }
 
   function setText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = String(value);
   }
 
-  function setFixed(id, value, digits = 2) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = Number(value).toFixed(digits);
-  }
+  // ============================================================
+  //  Level completion
+  // ============================================================
+  function checkLevelCompletion(capMet, ggeMet, budgetMet) {
+    if (!capMet || !ggeMet || !budgetMet) return;
 
-  function clampInt(n) {
-    n = parseInt(n, 10);
-    return Number.isFinite(n) ? Math.max(0, n) : 0;
-  }
+    const isLastYear = currentYearIndex === currentConfig.years.length - 1;
+    if (!isLastYear) return; // multi-year levels: must complete final year
 
-  // ---- Investments: , REDUCE GGE directly ----
-  function investmentSpendM() {
-    const cbs = [...document.querySelectorAll('#investment-panel input[type="checkbox"]')];
-    let sum = 0;
-    cbs.forEach((cb) => {
-      if (!cb.checked) return;
-      const base = num(cb.dataset.cost, 0);
-      sum += base * 1; // 
-    });
-    return sum;
-  }
+    if (levelCompleted[currentLevel]) return;
+    levelCompleted[currentLevel] = true;
 
-  // Get total GGE reduction from checked investments
-  function investmentGgeReduction() {
-    const cbs = [...document.querySelectorAll('#investment-panel input[type="checkbox"]')];
-    let reduction = 0;
-    cbs.forEach((cb) => {
-      if (!cb.checked) return;
-      const ggeRedux = num(cb.dataset.ggeReduction, 0);
-      reduction += ggeRedux;
-    });
-    return reduction;
-  }
-  function sfx() { return currentLevel === 2 ? "2" : ""; }
-  // ---- Rows: additional units add on top of base cap/gge ----
-  function getUnits(type) {
-    return clampInt(document.getElementById(`units-${type}${sfx()}`)?.textContent, 0);
-  }
-  function setUnits(type, units) {
-    const el = document.getElementById(`units-${type}${sfx()}`);
-    if (el) el.textContent = String(Math.max(0, units));
-  }
-  function setCap(type, value) {
-    const el = document.getElementById(`cap-${type}${sfx()}`);
-    if (el) el.textContent = Number(value).toFixed(2);
-  }
-  function setGge(type, value) {
-    const el = document.getElementById(`gge-${type}${sfx()}`);
-    if (el) el.textContent = Number(value).toFixed(2);
-  }
+    const nextLevel = currentLevel + 1;
+    const hasNext   = nextLevel <= 3;
 
-  function recomputeRowsFromUnits() {
-    const rows = [...document.querySelectorAll("#energy-table tbody tr.energy-row")];
+    levelCompleteTitle.textContent = `Level ${currentLevel} Complete!`;
 
-    rows.forEach((row) => {
-      const type = row.dataset.type;
-
-      const baseCap = num(row.dataset.baseCap, 0);
-      const baseGge = num(row.dataset.baseGge, 0);
-
-      const unitCap = num(row.dataset.unitCap, 0);
-      const unitGge = num(row.dataset.unitGge, 0);
-
-      const units = getUnits(type);
-
-      setCap(type, baseCap + units * unitCap);
-      setGge(type, baseGge + units * unitGge);
-    });
-  }
-
-  // Unit cost rule: (construction + operating*4) then 90% cheaper
-  function unitCostM(row) {
-    const construct = num(row.dataset.construct, 0);
-    const operating = num(row.dataset.operating, 0);
-    const raw = construct + operating * 4;
-    return raw * STATE.unitDiscount;
-  }
-
-  function unitSpendM() {
-    const rows = [...document.querySelectorAll("#energy-table tbody tr.energy-row")];
-    return rows.reduce((sum, row) => {
-      const type = row.dataset.type;
-      const units = getUnits(type);
-      return sum + units * unitCostM(row);
-    }, 0);
-  }
-
-function recomputeTotalsGoalsBudget() {
-  const isL2 = currentLevel === 2;
-
-  // Pick correct IDs for the active level
-  const tableId = isL2 ? "energy-table-2" : "energy-table";
-  const suf = isL2 ? "2" : ""; // for cap-oil2, gge-gas2, etc.
-
-  const idCapTotal = isL2 ? "cap-total2" : "cap-total";
-  const idGgeTotal = isL2 ? "gge-total2" : "gge-total";
-
-  const idGoalCapCurrent = isL2 ? "goal2-capacity-current" : "goal-capacity-current";
-  const idGoalCapTarget   = isL2 ? "goal2-capacity-target"  : "goal-capacity-target";
-  const idGoalCapStatus   = isL2 ? "goal2-capacity-status"  : "goal-capacity-status";
-
-  const idGoalGgeCurrent = isL2 ? "goal2-gge-current" : "goal-gge-current";
-  const idGoalGgeTarget  = isL2 ? "goal2-gge-target"  : "goal-gge-target";
-  const idGoalGgeStatus  = isL2 ? "goal2-gge-status"  : "goal-gge-status";
-
-  const idBudgetSpent     = isL2 ? "budget2-spent"     : "budget-spent";
-  const idBudgetRemaining = isL2 ? "budget2-remaining" : "budget-remaining";
-  const idGoalBudgetStatus= isL2 ? "goal2-budget-status": "goal-budget-status";
-
-  // Sum capacity & gge by reading the cap-*/gge-* spans (with suffix if Level 2)
-  const rows = [...document.querySelectorAll(`#${tableId} tbody tr.energy-row`)];
-  const totals = rows.reduce(
-    (acc, row) => {
-      const type = row.dataset.type;
-      acc.capacity += num(document.getElementById(`cap-${type}${suf}`)?.textContent, 0);
-      acc.gge      += num(document.getElementById(`gge-${type}${suf}`)?.textContent, 0);
-      return acc;
-    },
-    { capacity: 0, gge: 0 }
-  );
-
-  // Write totals into the correct totals row
-  setFixed(idCapTotal, totals.capacity, 2);
-  setFixed(idGgeTotal, totals.gge, 2);
-
-  // Investment reduction (NOTE: if you later want separate investments per level,
-  // you'll need a level-aware investment selector too)
-  const ggeReduction = investmentGgeReduction();
-  const ggeAfterReduction = Math.max(0, totals.gge - ggeReduction);
-
-  // Write goal current values
-  setFixed(idGoalCapCurrent, totals.capacity, 2);
-  setFixed(idGoalGgeCurrent, ggeAfterReduction, 2);
-
-  // Budget values (unitSpendM currently reads Level 1 table only in your file,
-  // but this at least writes to the right labels)
-  const spent = unitSpendM() + investmentSpendM();
-  const remaining = STATE.budgetTotalM - spent;
-
-  setText(idBudgetSpent, spent.toFixed(0));
-  setText(idBudgetRemaining, remaining.toFixed(0));
-
-  // Targets + status checks
-  const capacityTarget = num(document.getElementById(idGoalCapTarget)?.textContent, 50);
-  const ggeTarget      = num(document.getElementById(idGoalGgeTarget)?.textContent, 24);
-  const budgetTotal    = STATE.budgetTotalM;
-
-  updateGoalStatus(idGoalCapStatus, totals.capacity >= capacityTarget);
-  updateGoalStatus(idGoalGgeStatus, ggeAfterReduction <= ggeTarget);
-  updateGoalStatus(idGoalBudgetStatus, spent <= budgetTotal);
-
-  // Only Level 1 unlock logic (keep as you had it)
-  if (!isL2) checkLevel1CompletionAndUnlockNext();
-}
-
-  // Update goal status icon
-  function updateGoalStatus(elementId, isMet) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-
-    if (isMet) {
-      el.textContent = "✓";
-      el.className = "goal-status complete";
+    if (hasNext) {
+      levelCompleteBody.innerHTML =
+        `Great work! Level ${nextLevel} has been unlocked.<br>Head back to the menu to try it!`;
+      nextLevelBtn.style.display = "inline-block";
+      unlockLevel(nextLevel);
     } else {
-      el.textContent = "✗";
-      el.className = "goal-status incomplete";
+      levelCompleteBody.textContent = "Amazing! You have completed all levels!";
+      nextLevelBtn.style.display = "none";
     }
+
+    levelCompleteOverlay.style.display = "flex";
+    refreshLevelButtons();
   }
 
+  function unlockLevel(levelNum) {
+    const btn = document.querySelector(`.level-btn[data-level="${levelNum}"]`);
+    if (!btn) return;
+    btn.disabled = false;
+    btn.classList.remove("locked");
+  }
+
+  function refreshLevelButtons() {
+    levelButtons.forEach(btn => {
+      const level = Number(btn.dataset.level);
+      if (levelCompleted[level]) {
+        btn.classList.add("completed");
+        btn.disabled = true;
+      }
+    });
+  }
+
+  // ============================================================
+  //  Year navigation (Levels 2 & 3)
+  // ============================================================
+  function advanceYear(direction) {
+    const newIndex = currentYearIndex + direction;
+    if (newIndex < 0 || newIndex >= currentConfig.years.length) return;
+
+    currentYearIndex = newIndex;
+    currentYearLabel.textContent = currentYear();
+
+    prevYearBtn.disabled = currentYearIndex === 0;
+    nextYearBtn.disabled = currentYearIndex === currentConfig.years.length - 1;
+
+    // Update goal targets for new year
+    setText("goal-cap-target", capacityTarget());
+    setText("goal-gge-target",  ggeTarget());
+
+    recomputeAll();
+  }
+
+  prevYearBtn.addEventListener("click", () => advanceYear(-1));
+  nextYearBtn.addEventListener("click", () => advanceYear(1));
+
+  // ============================================================
+  //  Stepper buttons (event delegation)
+  // ============================================================
+  document.addEventListener("click", e => {
+    const stepBtn = e.target.closest(".step");
+    if (!stepBtn) return;
+    const row = stepBtn.closest(".energy-row");
+    if (!row) return;
+    const type = row.dataset.type;
+    if (stepBtn.classList.contains("up"))   unitState[type] = (unitState[type] || 0) + 1;
+    if (stepBtn.classList.contains("down")) unitState[type] = Math.max(0, (unitState[type] || 0) - 1);
+    recomputeAll();
+  });
+
+  // ============================================================
+  //  Investment checkbox changes
+  // ============================================================
+  document.addEventListener("change", e => {
+    if (e.target.type === "checkbox" && e.target.closest("#investment-list")) {
+      recomputeAll();
+    }
+  });
+
+  // ============================================================
+  //  Recompute everything
+  // ============================================================
   function recomputeAll() {
-    recomputeRowsFromUnits();
-    recomputeTotalsGoalsBudget();
-    updateChartsForLevel(currentLevel);
+    recomputeRows();
+    const totals = recomputeTotals();
+    updateCharts(totals);
   }
 
-  // ---- Initialize starting units ----
-  function getRow(type) {
-    return document.querySelector(`#energy-table tbody tr.energy-row[data-type="${type}"]`);
+  // ============================================================
+  //  Charts
+  // ============================================================
+  const CHART_COLORS = {
+    oil:      "#f4845f",
+    gas:      "#f7c948",
+    wind:     "#95d5b2",
+    solar:    "#ffe066",
+    offshore: "#52b788",
+    nuclear:  "#a8dadc",
+    hydro:    "#457b9d",
+  };
+
+  function initCharts() {
+    // Destroy existing charts if re-entering a level
+    Object.keys(charts).forEach(k => {
+      if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+    });
+
+    const years      = currentConfig.years;
+    const demandData = years.map(y => currentConfig.demandByYear[y]);
+    const labels     = years.map(String);
+
+    // --- Demand vs Supply ---
+    const demandCtx = document.getElementById("demandChart").getContext("2d");
+    charts.demand = new Chart(demandCtx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Demand (TWh)",
+            data: demandData,
+            borderColor: "#ff6b6b",
+            backgroundColor: "rgba(255,107,107,0.15)",
+            borderWidth: 2.5, tension: 0.4, fill: true,
+          },
+          {
+            label: "Supply (TWh)",
+            data: Array(years.length).fill(0),
+            borderColor: "#52b788",
+            backgroundColor: "rgba(82,183,136,0.15)",
+            borderWidth: 2.5, tension: 0.4, fill: true,
+          },
+        ],
+      },
+      options: chartOptions("TWh"),
+    });
+
+    // --- Fuel Mix Doughnut ---
+    const fuelCtx = document.getElementById("fuelChart").getContext("2d");
+    charts.fuel = new Chart(fuelCtx, {
+      type: "doughnut",
+      data: {
+        labels: ENERGY_SOURCES.map(s => s.label),
+        datasets: [{
+          data: ENERGY_SOURCES.map(s => s.baseCap),
+          backgroundColor: ENERGY_SOURCES.map(s => CHART_COLORS[s.type]),
+          borderColor: "rgba(0,0,0,0.2)",
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: "#fff", font: { size: 11 } } } },
+      },
+    });
+
+    // --- GGE Line ---
+    const ggeCtx = document.getElementById("ggeChart").getContext("2d");
+    const ggeTargets = years.map(y =>
+      currentConfig.ggeTargetByYear ? currentConfig.ggeTargetByYear[y] : currentConfig.ggeTarget
+    );
+    charts.gge = new Chart(ggeCtx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Your GGE (MtCO\u2082eq)",
+            data: Array(years.length).fill(0),
+            borderColor: "#f4845f",
+            backgroundColor: "rgba(244,132,95,0.15)",
+            borderWidth: 2.5, tension: 0.35, fill: true, pointRadius: 3,
+          },
+          {
+            label: "Target",
+            data: ggeTargets,
+            borderColor: "#52b788",
+            borderDash: [6, 4],
+            backgroundColor: "transparent",
+            borderWidth: 2, tension: 0.3, pointRadius: 2,
+          },
+        ],
+      },
+      options: chartOptions("MtCO\u2082eq"),
+    });
   }
 
-  function initStartingUnitsIfEmpty() {
-    const rows = [...document.querySelectorAll("#energy-table tbody tr.energy-row")];
-
-    // If any units already set, don't overwrite
-    const alreadySet = rows.some(r => getUnits(r.dataset.type) > 0);
-    if (alreadySet) return;
-
-    // Priority 1: use data-start-units if present
-    const hasDataStart = rows.some(r => r.dataset.startUnits != null);
-    if (hasDataStart) {
-      rows.forEach(r => {
-        const type = r.dataset.type;
-        const u = clampInt(r.dataset.startUnits || "0");
-        setUnits(type, u);
-      });
-      return;
-    }
-
-    // Priority 2: approximate Ireland-like electricity mix
-    const mix = {
-      gas: 0.0,
-      wind: 0.0,
-      solar: 0.0,
-      offshore: 0.0,
-      oil: 0.0
+  function chartOptions(yLabel) {
+    return {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
+      scales: {
+        y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" },
+             title: { display: true, text: yLabel, color: "#ccc" } },
+        x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
+      },
     };
-
-    const TOTAL_UNITS = 1;
-
-    Object.entries(mix).forEach(([type, share]) => {
-      const u = Math.round(TOTAL_UNITS * share);
-      if (getRow(type)) setUnits(type, u);
-    });
-
-    // ensure any remaining rows have 0
-    rows.forEach(r => {
-      const type = r.dataset.type;
-      if (!document.getElementById(`units-${type}`)?.textContent) setUnits(type, 0);
-    });
   }
 
-  // ---- Name form ----
-  nameForm.addEventListener("submit", (event) => {
-    event.preventDefault();
+  function updateCharts(totals) {
+    if (!charts.demand || !charts.fuel || !charts.gge) return;
+
+    const years = currentConfig.years;
+
+    // Supply line: flat at current total capacity across all years
+    charts.demand.data.datasets[1].data = Array(years.length).fill(
+      parseFloat(totals.totalCap.toFixed(2))
+    );
+    charts.demand.update("none");
+
+    // Fuel mix: actual capacities
+    charts.fuel.data.datasets[0].data = ENERGY_SOURCES.map(s =>
+      parseFloat((s.baseCap + (unitState[s.type] || 0) * s.unitCap).toFixed(2))
+    );
+    charts.fuel.update("none");
+
+    // GGE: current value shown at current year index, projected linear decline to final year
+    const ggeNow = parseFloat(totals.ggeNet.toFixed(2));
+    const ggeData = years.map((_, i) => {
+      if (i < currentYearIndex) return null;
+      if (i === currentYearIndex) return ggeNow;
+      // simple linear projection
+      const stepsLeft = years.length - 1 - currentYearIndex;
+      const finalTarget = currentConfig.ggeTargetByYear
+        ? currentConfig.ggeTargetByYear[years[years.length - 1]]
+        : currentConfig.ggeTarget;
+      const step = stepsLeft > 0 ? (ggeNow - finalTarget) / stepsLeft : 0;
+      return parseFloat((ggeNow - step * (i - currentYearIndex)).toFixed(2));
+    });
+    charts.gge.data.datasets[0].data = ggeData;
+    charts.gge.update("none");
+  }
+
+  // ============================================================
+  //  Timer
+  // ============================================================
+  function startTimer() {
+    gameTimer = 0;
+    updateTimerDisplay();
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (!gamePaused) { gameTimer++; updateTimerDisplay(); }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(gameTimer / 60).toString().padStart(2, "0");
+    const s = (gameTimer % 60).toString().padStart(2, "0");
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  // ============================================================
+  //  Pause / Resume
+  // ============================================================
+  pauseBtn.addEventListener("click", () => {
+    gamePaused = true;
+    pauseOverlay.style.display = "flex";
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  });
+
+  resumeBtn.addEventListener("click", () => {
+    gamePaused = false;
+    pauseOverlay.style.display = "none";
+    startTimer();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    gameTimer = 0;
+    updateTimerDisplay();
+    pauseOverlay.style.display = "none";
+    gamePaused = false;
+    startTimer();
+  });
+
+  exitBtn.addEventListener("click", () => {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    pauseOverlay.style.display = "none";
+    levelScreen.style.display  = "none";
+    levelSelectContainer.style.display = "flex";
+    currentLevel = null;
+  });
+
+  // ============================================================
+  //  Level complete overlay buttons
+  // ============================================================
+  closeLevelCompleteBtn.addEventListener("click", () => {
+    levelCompleteOverlay.style.display = "none";
+    levelScreen.style.display  = "none";
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    levelSelectContainer.style.display = "flex";
+    currentLevel = null;
+  });
+
+  nextLevelBtn.addEventListener("click", () => {
+    levelCompleteOverlay.style.display = "none";
+    levelScreen.style.display = "none";
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    levelSelectContainer.style.display = "flex";
+    currentLevel = null;
+  });
+
+  // ============================================================
+  //  Name form → start game
+  // ============================================================
+  nameForm.addEventListener("submit", e => {
+    e.preventDefault();
     const name = nameInput.value.trim();
     if (!name) return;
-
-    startScreen.style.display = "none";
-    gameScreen.style.display = "flex";
-    welcomeFlash.style.display = "flex";
-
+    startScreen.style.display   = "none";
+    gameScreen.style.display    = "flex";
+    welcomeFlash.style.display  = "flex";
     setTimeout(() => {
-      welcomeFlash.style.display = "none";
+      welcomeFlash.style.display         = "none";
       levelSelectContainer.style.display = "flex";
     }, 2000);
   });
 
-  // ---- Level selection ----
-levelButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const level = Number(btn.dataset.level);
-
-    // Block if disabled or already completed
-    if (btn.disabled || levelCompleted[level]) return;
-
-    currentLevel = level;
-    levelSelectContainer.style.display = "none";
-
-    if (level === 1) {
-      level1Screen.style.display = "flex";
-      startTimer();
-      setupPauseListeners();
-      initStartingUnitsIfEmpty();
-      setTimeout(() => {
-      initChartsForLevel(level);
-      recomputeAll();
-      }, 100);
-    } else if (level === 2) {
-      level2Screen.style.display = "flex";
-      startTimer();
-      setupPauseListeners();
-      initStartingUnitsIfEmpty();
-      setTimeout(() => {
-      initChartsForLevel(level);
-      recomputeAll();
-      }, 100);   
-     } else if (level === 3) {
-      document.getElementById("level-3-screen").style.display = "flex";
-      startTimer();
-    }
-  });
-});
-
-
-  // ---- Stepper: changes additional units ----
-  document.addEventListener("click", (e) => {
-    const stepBtn = e.target.closest(".step");
-    if (!stepBtn) return;
-
-    const row = stepBtn.closest(".energy-row");
-    if (!row) return;
-
-    const type = row.dataset.type;
-    let units = getUnits(type);
-
-    if (stepBtn.classList.contains("up")) units += 1;
-    if (stepBtn.classList.contains("down")) units = Math.max(0, units - 1);
-
-    setUnits(type, units);
-    recomputeAll();
-  });
-
-  // ---- Investment checkbox changes ----
-  document.addEventListener("change", (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLInputElement)) return;
-    if (t.type !== "checkbox") return;
-    if (!t.closest("#investment-panel")) return;
-
-    recomputeAll();
-  });
-
-  // ---- Pause setup ----
-  function setupPauseListeners() {
-    const pauseBtn = document.getElementById("pause-btn");
-    const resumeBtn = document.getElementById("resume-btn");
-    const resetBtn = document.getElementById("reset-btn");
-    const exitBtn = document.getElementById("exit-btn");
-
-    if (pauseBtn) {
-      pauseBtn.onclick = () => {
-        gamePaused = true;
-        document.getElementById("pause-overlay").style.display = "flex";
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
-      };
-
-     document.getElementById("close-level-complete-btn")?.addEventListener("click", () => {
-  const overlay = document.getElementById("level-complete-overlay");
-  if (overlay) overlay.style.display = "none";
-});
-
-document.getElementById("go-to-level-2-btn")?.addEventListener("click", () => {
-  // Close completion overlay
-  const overlay = document.getElementById("level-complete-overlay");
-  if (overlay) overlay.style.display = "none";
-
-  // Go back to level select screen (do NOT auto-start level 2)
-  level1Screen.style.display = "none";
-  levelSelectContainer.style.display = "flex";
-
-  // Optional: keep currentLevel accurate
-  currentLevel = null;
-});
-
- 
-    }
-
-    if (resumeBtn) {
-      resumeBtn.onclick = () => {
-        gamePaused = false;
-        document.getElementById("pause-overlay").style.display = "none";
-        startTimer();
-      };
-    }
-
-    if (resetBtn) {
-      resetBtn.onclick = () => {
-        gameTimer = 0;
-        updateTimerDisplay();
-        document.getElementById("pause-overlay").style.display = "none";
-        startTimer();
-      };
-    }
-
-    if (exitBtn) {
-      exitBtn.onclick = () => {
-        gameTimer = 0;
-        updateTimerDisplay();
-        if (timerInterval) clearInterval(timerInterval);
-        document.getElementById("pause-overlay").style.display = "none";
-        level1Screen.style.display = "none";
-        levelSelectContainer.style.display = "flex";
-      };
-    }
-  }
-
-  // ---- Timer ----
-  function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      if (!gamePaused) {
-        gameTimer++;
-        updateTimerDisplay();
-      }
-    }, 1000);
-  }
-
-  function refreshLevelButtons() {
-  levelButtons.forEach((btn) => {
-    const level = Number(btn.dataset.level);
-
-    // If a level is marked completed, show it and disable it.
-    if (levelCompleted[level]) {
-      btn.classList.add("completed");
-      btn.disabled = true;
-    }
-
-    // Existing lock logic for future levels stays as-is
-    // (Level 2 gets unlocked by unlockLevel2()).
-  });
-}
-
-
-  function updateTimerDisplay() {
-    const timerEl = document.getElementById("timer");
-    if (timerEl) {
-      const minutes = Math.floor(gameTimer / 60);
-      const seconds = gameTimer % 60;
-      timerEl.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-    }
-  }
-
-
-
-
-  // ========== CHART INITIALIZATION & UPDATES ==========
-// =================== CHARTS (Level 1 + Level 2) ===================
-const charts = {
-  1: { demand: null, fuel: null, gge: null },
-  2: { demand: null, fuel: null, gge: null }
-};
-
-function chartIds(level) {
-  const s = level === 2 ? "2" : "";
-  return {
-    suffix: s,
-    demandCanvasId: `demandChart${s}`,
-    fuelCanvasId: `fuelChart${s}`,
-    ggeCanvasId: `ggeChart${s}`,
-    tableSelector: level === 2 ? "#energy-table-2" : "#energy-table",
-    ggeGoalId: level === 2 ? "goal2-gge-current" : "goal-gge-current"
-  };
-}
-
-function initChartsForLevel(level) {
-  const ids = chartIds(level);
-
-  // Demand vs Supply
-  const demandCtx = document.getElementById(ids.demandCanvasId)?.getContext("2d");
-  if (demandCtx && !charts[level].demand) {
-    charts[level].demand = new Chart(demandCtx, {
-      type: "line",
-      data: {
-        labels: ["2026", "2027", "2028", "2029", "2030"],
-        datasets: [
-          {
-            label: "Demand",
-            data: [34, 36, 38, 39, 40],
-            borderColor: "#8acb84",
-            backgroundColor: "rgba(255, 107, 107, 0.1)",
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: "Supply",
-            data: [35, 37, 39, 41, 43],
-            borderColor: "#204a35",
-            backgroundColor: "rgba(78, 205, 196, 0.1)",
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
-        scales: {
-          y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-          x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
-        }
-      }
+  // ============================================================
+  //  Level select buttons
+  // ============================================================
+  levelButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const level = Number(btn.dataset.level);
+      if (btn.disabled || levelCompleted[level]) return;
+      loadLevel(level);
     });
-  }
+  });
 
-  // Fuel Mix doughnut
-  const fuelCtx = document.getElementById(ids.fuelCanvasId)?.getContext("2d");
-  if (fuelCtx && !charts[level].fuel) {
-    charts[level].fuel = new Chart(fuelCtx, {
-      type: "doughnut",
-      data: {
-        labels: ["Gas", "Wind", "Oil", "Nuclear", "Offshore", "Solar", "Hydro"],
-        datasets: [
-          {
-            data: [40, 32, 18, 5, 3, 1, 1],
-            backgroundColor: ["#b7e4c7", "#95d5b2", "#52b788", "#40916c", "#2d6a4f", "#1b4332", "#081c15"],
-            borderColor: "rgba(0,0,0,0.2)",
-            borderWidth: 2
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: { legend: { labels: { color: "#fff", font: { size: 11 } } } }
-      }
-    });
-  }
-
-  // GGE line
-  const ggeCtx = document.getElementById(ids.ggeCanvasId)?.getContext("2d");
-  if (ggeCtx && !charts[level].gge) {
-    charts[level].gge = new Chart(ggeCtx, {
-      type: "line",
-      data: {
-        labels: ["2026", "2027", "2028", "2029", "2030"],
-        datasets: [
-          {
-            label: "GGE Emissions (MtCO2eq)",
-            data: [29, 28, 27, 26.5, 26],
-            borderColor: "#40916c",
-            backgroundColor: "rgba(64, 145, 108, 0.15)",
-            borderWidth: 2.5,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            tension: 0.35,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
-        scales: {
-          y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-          x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } }
-        }
-      }
-    });
-  }
-}
-
-function updateChartsForLevel(level) {
-  if (level !== 1 && level !== 2) return;
-
-  const ids = chartIds(level);
-  const typesOrder = ["gas", "wind", "oil", "nuclear", "offshore", "solar", "hydro"];
-
-  const capFor = (type) =>
-    num(document.getElementById(`cap-${type}${ids.suffix}`)?.textContent, 0);
-
-  const rows = [...document.querySelectorAll(`${ids.tableSelector} tbody tr.energy-row`)];
-  const totalCap = rows.reduce((sum, row) => sum + capFor(row.dataset.type), 0);
-
-  // Demand chart supply line
-  if (charts[level].demand) {
-    charts[level].demand.data.datasets[1].data = Array(5).fill(totalCap);
-    charts[level].demand.update();
-  }
-
-  // Fuel chart capacities
-  if (charts[level].fuel) {
-    charts[level].fuel.data.datasets[0].data = typesOrder.map(capFor);
-    charts[level].fuel.update();
-  }
-
-const currentGGE = num(document.getElementById(ids.ggeGoalId)?.textContent, 0);
-
-if (charts[level].gge) {
-  charts[level].gge.data.datasets[0].data = [
-    currentGGE + 5,
-    currentGGE + 4,
-    currentGGE + 3,
-    currentGGE + 0.5,
-    currentGGE
-  ];
-  charts[level].gge.update();
-}
-}
-});
+}); // end DOMContentLoaded
