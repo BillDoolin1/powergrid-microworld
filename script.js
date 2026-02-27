@@ -33,7 +33,7 @@ const LEVELS = {
     name: "Near-Term Planning",
     budgetM: 2000,
     years: [2026, 2027, 2028],
-    startingMix: { gas: 3, oil: 2, wind: 1 },
+    startingMix: { },
     // targets tighten each year
     capacityTargetByYear: { 2026: 34, 2027: 37, 2028: 40 },
     ggeTargetByYear:      { 2026: 22, 2027: 20, 2028: 18 },
@@ -48,7 +48,7 @@ const LEVELS = {
     name: "2030 Net Zero Challenge",
     budgetM: 1000,
     years: [2026, 2027, 2028, 2029, 2030],
-    startingMix: { gas: 5, oil: 3, wind: 2, nuclear: 1 },
+    startingMix: { },
     capacityTargetByYear: { 2026: 34, 2027: 38, 2028: 44, 2029: 52, 2030: 60 },
     ggeTargetByYear:      { 2026: 20, 2027: 17, 2028: 14, 2029: 12, 2030: 10 },
     demandByYear:         { 2026: 34, 2027: 36, 2028: 38, 2029: 39, 2030: 40 },
@@ -511,13 +511,13 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Charts
   // ============================================================
   const CHART_COLORS = {
-    oil:      "#f4845f",
-    gas:      "#f7c948",
-    wind:     "#95d5b2",
-    solar:    "#ffe066",
-    offshore: "#52b788",
-    nuclear:  "#a8dadc",
-    hydro:    "#457b9d",
+    oil:      "#b7e4c7",
+    gas:      "#95d5b2",
+    wind:     "#52b788",
+    solar:    "#40916c",
+    offshore: "#2d6a4f",
+    nuclear:  "#1b4332",
+    hydro:    "#081c15"
   };
 
   function initCharts() {
