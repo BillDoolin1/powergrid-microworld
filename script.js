@@ -658,13 +658,12 @@ document.addEventListener("DOMContentLoaded", () => {
     startTimer();
   });
 
-  resetBtn.addEventListener("click", () => {
-    gameTimer = 0;
-    updateTimerDisplay();
-    pauseOverlay.style.display = "none";
-    gamePaused = false;
-    startTimer();
-  });
+resetBtn.addEventListener("click", () => {
+  pauseOverlay.style.display = "none";
+  gamePaused = false;
+  loadLevel(currentLevel);
+});
+
 
   exitBtn.addEventListener("click", () => {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
