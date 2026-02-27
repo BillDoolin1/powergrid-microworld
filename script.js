@@ -726,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
     levelSelectContainer.style.display = "flex";
     currentLevel = null;
     refreshLevelButtons(); 
-
+    gamePaused = false;
   });
 
   // ============================================================
@@ -779,6 +779,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.addEventListener("click", () => {
     const level = Number(btn.dataset.level);
     levelCompleted[level] = false;
+    gamePaused = false;
     loadLevel(level);
   });
 });
