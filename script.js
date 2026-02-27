@@ -106,6 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const levelCompleteBody    = document.getElementById("level-complete-body");
   const nextLevelBtn         = document.getElementById("next-level-btn");
   const closeLevelCompleteBtn= document.getElementById("close-level-complete-btn");
+  const redoBtn              = document.getElementById("redo-btn");
+  const viewLevelBtn         = document.getElementById("view-level-btn");
+
+  // ---- Best times (seconds) per level ----
+  const bestTimes = { 1: null, 2: null, 3: null };
+
 
   // ---- Game state ----
   const levelCompleted = { 1: false, 2: false, 3: false };
@@ -382,31 +388,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function checkLevelCompletion(capMet, ggeMet, budgetMet) {
     if (!capMet || !ggeMet || !budgetMet) return;
-
     const isLastYear = currentYearIndex === currentConfig.years.length - 1;
-    if (!isLastYear) return; // multi-year levels: must complete final year
-
+    if (!isLastYear) return;
     if (levelCompleted[currentLevel]) return;
     levelCompleted[currentLevel] = true;
+
+    // Save best time
+    const finishTime = gameTimer;
+    if (bestTimes[currentLevel] === null || finishTime < bestTimes[currentLevel]) {
+      bestTimes[currentLevel] = finishTime;
+    }
 
     const nextLevel = currentLevel + 1;
     const hasNext   = nextLevel <= 3;
 
     levelCompleteTitle.textContent = `Level ${currentLevel} Complete!`;
+    levelCompleteBody.innerHTML =
+      `Your time: <strong>${formatTime(finishTime)}</strong><br>
+      Best time: <strong>${formatTime(bestTimes[currentLevel])}</strong><br><br>
+      ${hasNext
+         ? `Level ${nextLevel} has been unlocked. Head back to the menu to try it!`
+         : "Amazing! You have completed all levels!"}`;
 
-    if (hasNext) {
-      levelCompleteBody.innerHTML =
-        `Great work! Level ${nextLevel} has been unlocked.<br>Head back to the menu to try it!`;
-      nextLevelBtn.style.display = "inline-block";
-      unlockLevel(nextLevel);
-    } else {
-      levelCompleteBody.textContent = "Amazing! You have completed all levels!";
-      nextLevelBtn.style.display = "none";
-    }
+    nextLevelBtn.style.display = hasNext ? "inline-block" : "none";
+    if (hasNext) unlockLevel(nextLevel);
 
     levelCompleteOverlay.style.display = "flex";
     refreshLevelButtons();
   }
+
 
   function unlockLevel(levelNum) {
     const btn = document.querySelector(`.level-btn[data-level="${levelNum}"]`);
@@ -420,10 +430,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const level = Number(btn.dataset.level);
       if (levelCompleted[level]) {
         btn.classList.add("completed");
-        btn.disabled = true;
+      }
+      // Show best time if set
+      const timeEl = btn.querySelector(".btn-best-time");
+      if (timeEl && bestTimes[level] !== null) {
+        timeEl.textContent = `Best: ${formatTime(bestTimes[level])}`;
       }
     });
   }
+
 
   // ============================================================
   //  Year navigation (Levels 2 & 3)
@@ -643,6 +658,14 @@ document.addEventListener("DOMContentLoaded", () => {
     timerEl.textContent = `${m}:${s}`;
   }
 
+  function formatTime(seconds) {
+  if (seconds === null) return "--:--";
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+
   // ============================================================
   //  Pause / Resume
   // ============================================================
@@ -663,6 +686,18 @@ resetBtn.addEventListener("click", () => {
   gamePaused = false;
   loadLevel(currentLevel);
 });
+
+  redoBtn.addEventListener("click", () => {
+  levelCompleteOverlay.style.display = "none";
+  levelCompleted[currentLevel] = false; // allow re-completion
+  loadLevel(currentLevel);
+});
+
+viewLevelBtn.addEventListener("click", () => {
+  levelCompleteOverlay.style.display = "none";
+});
+
+
 
 
   exitBtn.addEventListener("click", () => {

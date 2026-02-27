@@ -34,9 +34,9 @@
           <h1>Power Grid Microworld</h1>
           <h2>Select a Level</h2>
         </div>
-        <button class="level-btn" data-level="1">Level 1 &mdash; Tutorial</button>
-        <button class="level-btn locked" data-level="2" disabled>Level 2 &mdash; Near-Term Planning</button>
-        <button class="level-btn locked" data-level="3" disabled>Level 3 &mdash; 2030 Net Zero Challenge</button>
+        <button class="level-btn" data-level="1"> Level 1 — Tutorial <span class="btn-best-time"></span></button>
+        <button class="level-btn locked" data-level="2" disabled> Level 2 — 2030 Goals <span class="btn-best-time"></span></button>
+        <button class="level-btn locked" data-level="3" disabled> Level 3 — 2050 Goals <span class="btn-best-time"></span></button>
       </div>
     </div>
 
@@ -146,8 +146,11 @@
         <div class="level-complete-card">
           <h2 id="level-complete-title">Level Complete!</h2>
           <p id="level-complete-body"></p>
+          <!-- Level complete overlay buttons -->
+          <button id="view-level-btn">View Attempt</button>
+          <button id="redo-btn"> Redo Level</button>
           <button id="next-level-btn" style="display:none;">Go to Next Level</button>
-          <button id="close-level-complete-btn">Back to Menu</button>
+          <button id="close-level-complete-btn">Go to Level Select</button>
         </div>
       </div>
 
