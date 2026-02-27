@@ -431,13 +431,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (levelCompleted[level]) {
         btn.classList.add("completed");
       }
-      // Show best time if set
       const timeEl = btn.querySelector(".btn-best-time");
       if (timeEl && bestTimes[level] !== null) {
         timeEl.textContent = `Best: ${formatTime(bestTimes[level])}`;
       }
     });
+
+    // Show redo buttons for completed levels
+    document.querySelectorAll(".redo-level-btn").forEach(btn => {
+      const level = Number(btn.dataset.level);
+      btn.style.display = levelCompleted[level] ? "inline-block" : "none";
+    });
   }
+
 
 
   // ============================================================
@@ -706,6 +712,8 @@ viewLevelBtn.addEventListener("click", () => {
     levelScreen.style.display  = "none";
     levelSelectContainer.style.display = "flex";
     currentLevel = null;
+    refreshLevelButtons(); 
+
   });
 
   // ============================================================
@@ -717,6 +725,7 @@ viewLevelBtn.addEventListener("click", () => {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     levelSelectContainer.style.display = "flex";
     currentLevel = null;
+    refreshLevelButtons();
   });
 
   nextLevelBtn.addEventListener("click", () => {
@@ -753,5 +762,13 @@ viewLevelBtn.addEventListener("click", () => {
       loadLevel(level);
     });
   });
+  document.querySelectorAll(".redo-level-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const level = Number(btn.dataset.level);
+    levelCompleted[level] = false;
+    loadLevel(level);
+  });
+});
+
 
 }); // end DOMContentLoaded

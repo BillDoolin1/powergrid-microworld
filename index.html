@@ -29,16 +29,36 @@
 
     <!-- ===== LEVEL SELECT ===== -->
     <div id="level-select-container" style="display:none;">
-      <div class="level-select">
-        <div class="level-select-title">
-          <h1>Power Grid Microworld</h1>
-          <h2>Select a Level</h2>
-        </div>
-        <button class="level-btn" data-level="1"> Level 1 — Tutorial <span class="btn-best-time"></span></button>
-        <button class="level-btn locked" data-level="2" disabled> Level 2 — 2030 Goals <span class="btn-best-time"></span></button>
-        <button class="level-btn locked" data-level="3" disabled> Level 3 — 2050 Goals <span class="btn-best-time"></span></button>
-      </div>
-    </div>
+<div class="level-select">
+  <div class="level-select-title">
+    <h1>Power Grid Microworld</h1>
+    <h2>Select a Level</h2>
+  </div>
+
+  <div class="level-row">
+    <button class="level-btn" data-level="1">Level 1 &mdash; Tutorial
+      <span class="btn-best-time"></span>
+    </button>
+    <button class="redo-level-btn" data-level="1" style="display:none;">&#128260; Redo</button>
+  </div>
+
+  <div class="level-row">
+    <button class="level-btn locked" data-level="2" disabled>Level 2 &mdash; Near-Term Planning
+      <span class="btn-best-time"></span>
+    </button>
+    <button class="redo-level-btn" data-level="2" style="display:none;">&#128260; Redo</button>
+  </div>
+
+  <div class="level-row">
+    <button class="level-btn locked" data-level="3" disabled>Level 3 &mdash; 2030 Net Zero Challenge
+      <span class="btn-best-time"></span>
+    </button>
+    <button class="redo-level-btn" data-level="3" style="display:none;"> Redo</button>
+  </div>
+</div>
+
+</div>
+
 
     <!-- ===== SINGLE LEVEL SCREEN (reused for all levels) ===== -->
     <div id="level-screen" style="display:none;">
