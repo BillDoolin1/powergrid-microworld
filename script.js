@@ -31,14 +31,13 @@ const LEVELS = {
     ],
   },
   2: {
-    name: "Near-Term Planning",
+    name: "Short-Term Planning",
     budgetM: 2000,
     years: [2027, 2028, 2029, 2030],
     startingMix: { },
     // targets tighten each year
-    capacityTargetByYear: {  2027: 34, 2028: 37, 2029: 39, 2030: 41 },
     ggeTargetByYear:      {  2027: 25, 2028: 23.5, 2029: 22, 2030: 20 },
-    demandByYear:         {  2027: 36, 2028: 38, 2029: 40, 2030: 42 },
+    demandByYear:         {  2027: 34, 2028: 37, 2029: 39, 2030: 41 },
     investments: [
       { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
       { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
@@ -46,13 +45,12 @@ const LEVELS = {
     ],
   },
   3: {
-    name: "2030 Net Zero Challenge",
+    name: "2050 Long-Term Challenge",
     budgetM: 1000,
-    years: [2026, 2027, 2028, 2029, 2030],
+    years: [2030, 2040, 2050],
     startingMix: { },
-    capacityTargetByYear: { 2026: 34, 2027: 38, 2028: 44, 2029: 52, 2030: 60 },
-    ggeTargetByYear:      { 2026: 20, 2027: 17, 2028: 14, 2029: 12, 2030: 10 },
-    demandByYear:         { 2026: 34, 2027: 36, 2028: 38, 2029: 39, 2030: 40 },
+    ggeTargetByYear:      { 2030: 20, 2040: 14, 2050: 9  },
+    demandByYear:         { 2030: 41, 2040: 47, 2050: 54 },
     investments: [
       { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
       { id: "carbon-tax",   label: "Carbon Tax",               costM:  50, ggeReduction: 6.0 },
@@ -158,8 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function capacityTarget() {
     const cfg = currentConfig;
-    return cfg.capacityTargetByYear
-      ? cfg.capacityTargetByYear[finalYear()]
+    return cfg.demandByYear
+      ? cfg.demandByYear[finalYear()]
       : cfg.capacityTarget;
   }
 
