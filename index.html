@@ -96,15 +96,15 @@
               <caption>Power Table</caption>
               <thead>
                 <tr>
-                  <th scope="col">Type</th>
-                  <th scope="col">Construction Cost &euro;M/unit</th>
-                  <th scope="col">Lead Time (years)</th>
-                  <th scope="col">Operating Cost &euro;/MWh</th>
-                  <th scope="col">% of Grid</th>
-                  <th scope="col">GGE (MtCO&#8322;eq)</th>
-                  <th scope="col">Capacity (TWh)</th>
-                  <th scope="col">No. of Units</th>
-                  <th scope="col">Add / Remove</th>
+                  <th scope="col" >Type<p></p></th>
+                  <th scope="col" >Construction Cost<p>&euro;M/unit</p></th>
+                  <th scope="col">Lead Time<p>(years)</p></th>
+                  <th scope="col">Operating Cost <p>&euro;/MWh</p></th>
+                  <th scope="col">% of Grid<p></p></th>
+                  <th scope="col">Greenhouse Gas <p>Emissions (MtCO&#8322;eq)</p></th>
+                  <th scope="col">Capacity <p>(TWh)</p></th>
+                  <th scope="col">No. of Units <p>of investment</p></th>
+                  <th scope="col">Add / Remove<p></p></th>
                 </tr>
               </thead>
               <tbody id="energy-table-body">
@@ -112,7 +112,8 @@
               </tbody>
               <tfoot>
                 <tr class="totals-row">
-                  <td colspan="5" style="text-align:right;"><strong>Total</strong></td>
+                  <td colspan="0" style="text-align:left;"><strong>Total</strong></td>
+                  <td colspan="4" style="text-align:right;"><strong></strong></td>
                   <td><strong><span id="gge-total">0.00</span></strong></td>
                   <td><strong><span id="cap-total">0.00</span></strong></td>
                   <td colspan="2"></td>
@@ -126,7 +127,7 @@
                 <h4>Projected Demand vs Supply</h4>
                 <canvas id="demandChart"></canvas>
               </div>
-              <div class="chart-box">
+              <div class="chart-box" id="fuelChart-box">
                 <h4>Fuel Mix</h4>
                 <canvas id="fuelChart"></canvas>
               </div>
