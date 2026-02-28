@@ -410,7 +410,7 @@ button[type="submit"]:hover {
   flex: 2 1 auto;
   min-height: 0;
   overflow-x: hidden;   /* no horizontal scroll */
-  overflow-y: hidden;   /* no vertical scroll on the wrap itself */
+  overflow-y: auto;   /* no vertical scroll on the wrap itself */
   background: rgba(255,255,255,0.12);
   border: 2px solid rgba(255,255,255,0.22);
   border-radius: 14px;
@@ -434,7 +434,7 @@ button[type="submit"]:hover {
   font-size: 1rem;
 }
 
-#energy-table th,
+
 #energy-table td {
   padding: 9px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -443,12 +443,17 @@ button[type="submit"]:hover {
 }
 
 #energy-table thead th {
+  padding: 9px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
   position: sticky;
   top: 0;
-  background: rgba(0,0,0,0.28);
+  background: rgba(30, 60, 40, 1); 
   backdrop-filter: blur(10px);
   z-index: 2;
   text-align: left;
+  position: sticky;
+
 }
 
 #energy-table tfoot td {

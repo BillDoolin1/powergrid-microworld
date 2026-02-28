@@ -293,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function renderEnergyTable() {
     energyTableBody.innerHTML = ENERGY_SOURCES.map(s => `
-      <tr class="energy-row" style="text-align:left;" data-type="${s.type}">
+      <tr class="energy-row" data-type="${s.type}">
         <th scope="row">${s.label}</th>
         <td>${s.construct}M</td>
         <td>${s.leadTime}</td>
