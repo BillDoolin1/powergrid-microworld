@@ -189,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function loadLevel(levelNum) {
     startingGgeNet = null;
+    gamePaused = false
     startingSupply = null;
     currentLevel     = levelNum;
     currentConfig    = LEVELS[levelNum];
