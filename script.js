@@ -21,8 +21,9 @@ const LEVELS = {
     capacityTarget: 50,
     ggeTarget: 24,
     years: [2026],
+    chartYears: ["","" , 2026,"" ,"" ],
     startingMix: {},
-    demandByYear: { 2026: 34 },
+    demandByYear: { "":50,"":50,2026:50,"":50,"":50 }, // expand
     investments: [
       { id: "solar-grant",  label: "Home Solar Panel Grant",  costM:  75, ggeReduction: 2.0 },
       { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
@@ -32,12 +33,12 @@ const LEVELS = {
   2: {
     name: "Near-Term Planning",
     budgetM: 2000,
-    years: [2026, 2027, 2028],
+    years: [2027, 2028, 2029, 2030],
     startingMix: { },
     // targets tighten each year
-    capacityTargetByYear: { 2026: 34, 2027: 37, 2028: 40, 2029: 41, 2030: 42 },
-    ggeTargetByYear:      { 2026: 22, 2027: 21, 2028: 20, 2029: 19, 2030: 18 },
-    demandByYear:         { 2026: 34, 2027: 36, 2028: 38, 2029: 40, 2030: 42 },
+    capacityTargetByYear: {  2027: 34, 2028: 37, 2029: 39, 2030: 41 },
+    ggeTargetByYear:      {  2027: 25, 2028: 23.5, 2029: 22, 2030: 20 },
+    demandByYear:         {  2027: 36, 2028: 38, 2029: 40, 2030: 42 },
     investments: [
       { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
       { id: "retrofitting", label: "Retrofitting Allowance",  costM: 200, ggeReduction: 5.0 },
@@ -114,12 +115,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Game state ----
   const levelCompleted = { 1: false, 2: false, 3: false };
+  let startingGgeNet = null;
+  let startingSupply = null;
   let currentLevel     = null;
   let currentConfig    = null;
   let currentYearIndex = 0;
   let gameTimer        = 0;
   let timerInterval    = null;
   let gamePaused       = false;
+
+
 
   // Unit counts stored in JS state (not in the DOM)
   // unitState[type] = number of additional units
@@ -158,10 +163,33 @@ document.addEventListener("DOMContentLoaded", () => {
       : cfg.ggeTarget;
   }
 
+  function computeTotalsOnly() {
+    let totalGge = 0;
+
+    ENERGY_SOURCES.forEach(s => {
+      const units = unitState[s.type] || 0;
+      totalGge += s.baseGge + units * s.unitGge;
+    });
+
+    // investment reductions
+    const invCheckboxes = [...document.querySelectorAll("#investment-list input[type='checkbox']")];
+    let ggeReduction = 0;
+    invCheckboxes.forEach(cb => {
+      if (!cb.checked) return;
+      ggeReduction += num(cb.dataset.ggeReduction, 0);
+    });
+
+    const ggeNet = Math.max(0, totalGge - ggeReduction);
+    return { ggeNet };
+  } 
+
+
   // ============================================================
   //  Level loading
   // ============================================================
   function loadLevel(levelNum) {
+    startingGgeNet = null;
+    startingSupply = null;
     currentLevel     = levelNum;
     currentConfig    = LEVELS[levelNum];
     currentYearIndex = 0;
@@ -171,6 +199,25 @@ document.addEventListener("DOMContentLoaded", () => {
     ENERGY_SOURCES.forEach(s => {
       unitState[s.type] = currentConfig.startingMix[s.type] || 0;
     });
+
+    let initialGge = 0;
+    let initialGgeReduction = 0; // investments are all unchecked at level start
+
+    ENERGY_SOURCES.forEach(s => {
+      const units = unitState[s.type] || 0;
+      initialGge += s.baseGge + units * s.unitGge;
+    });
+
+    startingGgeNet = parseFloat(
+      Math.max(0, initialGge - initialGgeReduction).toFixed(2)
+    );
+
+    let initialCap = 0;
+    ENERGY_SOURCES.forEach(s => {
+      const units = unitState[s.type] || 0;
+      initialCap += s.baseCap + units * s.unitCap;
+    });
+    startingSupply = parseFloat(initialCap.toFixed(2));
 
     // Header
     levelTitle.textContent = `Level ${levelNum}: ${currentConfig.name}`;
@@ -198,12 +245,13 @@ document.addEventListener("DOMContentLoaded", () => {
     levelScreen.style.display          = "flex";
 
     startFreshTimer();
-
-    // Init charts after a short delay to ensure canvas is rendered
+    
     setTimeout(() => {
       initCharts();
       recomputeAll();
     }, 120);
+
+
   }
 
   // ============================================================
@@ -524,9 +572,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (charts[k]) { charts[k].destroy(); charts[k] = null; }
     });
 
-    const years      = currentConfig.years;
-    const demandData = years.map(y => currentConfig.demandByYear[y]);
-    const labels     = years.map(String);
+    const yearsForCharts = currentConfig.chartYears || currentConfig.years;
+    const demandData = yearsForCharts.map(y => currentConfig.demandByYear[y]);
+    const labels     = yearsForCharts.map(String);
 
     // --- Demand vs Supply ---
     const demandCtx = document.getElementById("demandChart").getContext("2d");
@@ -538,15 +586,15 @@ document.addEventListener("DOMContentLoaded", () => {
           {
             label: "Demand (TWh)",
             data: demandData,
-            borderColor: "#ff6b6b",
-            backgroundColor: "rgba(255,107,107,0.15)",
+            borderColor: "#204a35",
+            backgroundColor: "rgba(255, 107, 107, 0.1)",
             borderWidth: 2.5, tension: 0.4, fill: true,
           },
           {
             label: "Supply (TWh)",
-            data: Array(years.length).fill(0),
-            borderColor: "#52b788",
-            backgroundColor: "rgba(82,183,136,0.15)",
+            data: Array(yearsForCharts.length).fill(startingSupply),
+            borderColor: "#8acb84",
+            backgroundColor: "rgba(78, 205, 196, 0.1)",
             borderWidth: 2.5, tension: 0.4, fill: true,
           },
         ],
@@ -575,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- GGE Line ---
     const ggeCtx = document.getElementById("ggeChart").getContext("2d");
-    const ggeTargets = years.map(y =>
+    const ggeTargets = yearsForCharts.map(y =>
       currentConfig.ggeTargetByYear ? currentConfig.ggeTargetByYear[y] : currentConfig.ggeTarget
     );
     charts.gge = new Chart(ggeCtx, {
@@ -585,15 +633,15 @@ document.addEventListener("DOMContentLoaded", () => {
         datasets: [
           {
             label: "Your GGE (MtCO\u2082eq)",
-            data: Array(years.length).fill(0),
-            borderColor: "#f4845f",
-            backgroundColor: "rgba(244,132,95,0.15)",
+            data: Array(yearsForCharts.length).fill(startingGgeNet),
+            borderColor: "#ff4000",
+            backgroundColor: "rgba(0, 255, 17, 0)",
             borderWidth: 2.5, tension: 0.35, fill: true, pointRadius: 3,
           },
           {
             label: "Target",
             data: ggeTargets,
-            borderColor: "#52b788",
+            borderColor: "#00ff2a",
             borderDash: [6, 4],
             backgroundColor: "transparent",
             borderWidth: 2, tension: 0.3, pointRadius: 2,
@@ -609,21 +657,30 @@ document.addEventListener("DOMContentLoaded", () => {
       responsive: true, maintainAspectRatio: true,
       plugins: { legend: { labels: { color: "#fff", font: { size: 12 } } } },
       scales: {
-        y: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" },
-             title: { display: true, text: yLabel, color: "#ccc" } },
+        y: {
+          ticks: { color: "#fff" },
+          grid: { color: "rgba(255,255,255,0.1)" },
+          title: { display: true, text: yLabel, color: "#ccc" },
+          grace: "10%",      
+        },
         x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } },
       },
     };
   }
 
+
   function updateCharts(totals) {
     if (!charts.demand || !charts.fuel || !charts.gge) return;
 
-    const years = currentConfig.years;
+    const years = currentConfig.chartYears || currentConfig.years;
 
     // Supply line: flat at current total capacity across all years
-    charts.demand.data.datasets[1].data = Array(years.length).fill(
-      parseFloat(totals.totalCap.toFixed(2))
+    const supplyNow = parseFloat(totals.totalCap.toFixed(2));
+    const supplyStart = startingSupply ?? supplyNow;
+    const numLabels = years.length;
+
+    charts.demand.data.datasets[1].data = Array.from({ length: numLabels }, (_, i) =>
+      parseFloat((supplyStart + (supplyNow - supplyStart) * (i / (numLabels - 1))).toFixed(2))
     );
     charts.demand.update("none");
 
@@ -633,21 +690,22 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     charts.fuel.update("none");
 
-    // GGE: current value shown at current year index, projected linear decline to final year
-    const ggeNow = parseFloat(totals.ggeNet.toFixed(2));
-    const ggeData = years.map((_, i) => {
-      if (i < currentYearIndex) return null;
-      if (i === currentYearIndex) return ggeNow;
-      // simple linear projection
-      const stepsLeft = years.length - 1 - currentYearIndex;
-      const finalTarget = currentConfig.ggeTargetByYear
-        ? currentConfig.ggeTargetByYear[years[years.length - 1]]
-        : currentConfig.ggeTarget;
-      const step = stepsLeft > 0 ? (ggeNow - finalTarget) / stepsLeft : 0;
-      return parseFloat((ggeNow - step * (i - currentYearIndex)).toFixed(2));
+    // GGE chart: line from starting GGE to current GGE (no fake decline)
+    const ggeNow   = parseFloat(totals.ggeNet.toFixed(2));
+    const ggeStart = startingGgeNet ?? ggeNow;
+    numLabels = (currentConfig.chartYears || currentConfig.years).length;
+      
+    // Interpolate a straight line from start → current across all chart labels
+    const ggeLineData = Array.from({ length: numLabels }, (_, i) => {
+      return parseFloat(
+        (ggeStart + (ggeNow - ggeStart) * (i / (numLabels - 1))).toFixed(2)
+      );
     });
-    charts.gge.data.datasets[0].data = ggeData;
+    
+    charts.gge.data.datasets[0].data = ggeLineData;
     charts.gge.update("none");
+
+
   }
 
   // ============================================================
