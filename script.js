@@ -61,6 +61,8 @@ const LEVELS = {
     ],
   },
 };
+const levelEverCompleted = { 1: false, 2: false, 3: false };
+
 
 // ============================================================
 //  Bootstrap on DOM ready
@@ -149,19 +151,25 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentConfig.years[currentYearIndex];
   }
 
+  function finalYear() {
+  return currentConfig.years[currentConfig.years.length - 1];
+}
+
+
   function capacityTarget() {
     const cfg = currentConfig;
     return cfg.capacityTargetByYear
-      ? cfg.capacityTargetByYear[currentYear()]
+      ? cfg.capacityTargetByYear[finalYear()]
       : cfg.capacityTarget;
   }
 
   function ggeTarget() {
     const cfg = currentConfig;
     return cfg.ggeTargetByYear
-      ? cfg.ggeTargetByYear[currentYear()]
+      ? cfg.ggeTargetByYear[finalYear()]
       : cfg.ggeTarget;
   }
+
 
   function computeTotalsOnly() {
     let totalGge = 0;
@@ -251,7 +259,8 @@ document.addEventListener("DOMContentLoaded", () => {
       initCharts();
       recomputeAll();
     }, 120);
-
+    
+    
 
   }
 
@@ -259,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Render: Goals
   // ============================================================
   function renderGoals() {
-    goalsTitle.textContent = `Level ${currentLevel} Goals`;
+    goalsTitle.textContent = `Level ${currentLevel} Goals (by ${finalYear()})`;
     goalsList.innerHTML = `
       <div class="goal" id="goal-capacity">
         <span>Match Projected Demand</span>
@@ -293,7 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function renderEnergyTable() {
     energyTableBody.innerHTML = ENERGY_SOURCES.map(s => `
-      <tr class="energy-row" data-type="${s.type}">
+      <tr class="energy-row" style="text-align:left;" data-type="${s.type}">
         <th scope="row">${s.label}</th>
         <td>${s.construct}M</td>
         <td>${s.leadTime}</td>
@@ -436,10 +445,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function checkLevelCompletion(capMet, ggeMet, budgetMet) {
     if (!capMet || !ggeMet || !budgetMet) return;
-    const isLastYear = currentYearIndex === currentConfig.years.length - 1;
-    if (!isLastYear) return;
     if (levelCompleted[currentLevel]) return;
     levelCompleted[currentLevel] = true;
+    levelEverCompleted[currentLevel] = true;
+
     
 
     // Save best time
@@ -490,11 +499,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Show redo buttons for completed levels
     document.querySelectorAll(".redo-level-btn").forEach(btn => {
       const level = Number(btn.dataset.level);
-      btn.style.display = levelCompleted[level] ? "inline-block" : "none";
+      btn.style.display = levelEverCompleted[level] ? "inline-block" : "none";
     });
+
   }
 
 
@@ -816,21 +825,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Level select buttons
   // ============================================================
-  levelButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const level = Number(btn.dataset.level);
-      if (btn.disabled || levelCompleted[level]) return;
-      loadLevel(level);
-    });
-  });
-  document.querySelectorAll(".redo-level-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
+levelButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
     const level = Number(btn.dataset.level);
-    levelCompleted[level] = false;
-    gamePaused = false;
+    if (levelEverCompleted[level]) return; // block click on completed levels
     loadLevel(level);
   });
 });
+
+document.querySelectorAll(".redo-level-btn").forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    loadLevel(Number(btn.dataset.level));
+  });
+});
+
 
 
 }); // end DOMContentLoaded
