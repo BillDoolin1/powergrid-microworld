@@ -9,9 +9,10 @@ const ENERGY_SOURCES = [
   { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 5 },
   { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 3 },
   { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 6 },
-  { type: "nuclear",  label: "Nuclear",       baseCap:  3.20, baseGge:  0.10, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 7 },
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0, baseGge:  0.10, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 7 },
   { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 4 },
 ];
+const DIVESTMENT_REFUND_RATE = 0.5; // 50% refund on divested units - change this later per fuel source thigy - divest return = 100%op cost - provision removal e.g. demo cost
 
 // ---- Level configurations ----
 const LEVELS = {
@@ -35,8 +36,7 @@ const LEVELS = {
     budgetM: 2000,
     years: [2027, 2028, 2029, 2030],
     startingMix: { },
-    // targets tighten each year
-    ggeTargetByYear:      {  2027: 25, 2028: 23.5, 2029: 22, 2030: 20 },
+    ggeTargetByYear:      {  2027: 25, 2028: 23, 2029: 22, 2030: 20 },
     demandByYear:         {  2027: 34, 2028: 37, 2029: 39, 2030: 41 },
     investments: [
       { id: "heat-pump",    label: "Heat Pump Grant",          costM: 100, ggeReduction: 3.5 },
@@ -189,6 +189,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return { ggeNet };
   } 
 
+  function minUnits(source) {
+  // Can divest until base capacity would hit zero
+  return -Math.floor(source.baseCap / source.unitCap);
+}
+
+
 
   // ============================================================
   //  Level loading
@@ -315,6 +321,9 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
       </tr>
     `).join("");
+
+    recomputeRows();
+
   }
 
   // ============================================================
@@ -347,7 +356,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const unitsEl = document.getElementById(`units-${s.type}`);
       if (capEl)   capEl.textContent   = cap.toFixed(2);
       if (ggeEl)   ggeEl.textContent   = gge.toFixed(2);
-      if (unitsEl) unitsEl.textContent = String(units);
+      if (unitsEl) {
+        unitsEl.textContent = String(units);
+        unitsEl.classList.toggle("units-divested", units < 0);
+        const downBtn = document.querySelector(`.energy-row[data-type="${s.type}"] .step.down`);
+        const cap = s.baseCap + units * s.unitCap;
+        const atFloor = cap <= 0 || units <= minUnits(s);
+
+        if (downBtn) {
+          downBtn.disabled = atFloor;
+          downBtn.title = atFloor ? 'Cannot divest further – capacity at zero' : '';
+          downBtn.style.opacity = atFloor ? '0.35' : '';
+          downBtn.style.cursor = atFloor ? 'not-allowed' : '';
+        }
+
+      }
+
     });
   }
 
@@ -377,11 +401,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const ggeNet = Math.max(0, totalGge - ggeReduction);
 
     // Unit spend
-    const unitSpend = ENERGY_SOURCES.reduce((sum, s) => {
-      const units = unitState[s.type] || 0;
-      const costPerUnit = (s.construct + s.operating * 4) * 0.10;
-      return sum + units * costPerUnit;
-    }, 0);
+  const unitSpend = ENERGY_SOURCES.reduce((sum, s) => {
+  const units = unitState[s.type] || 0;
+  const costPerUnit = s.construct + s.operating * 4 * 0.10;
+  if (units >= 0) {
+    return sum + units * costPerUnit;
+  } else {
+    // Divested units: refund at DIVESTMENT_REFUND_RATE
+    return sum + units * costPerUnit * DIVESTMENT_REFUND_RATE;
+  }
+}, 0);
+
 
     const totalSpent     = unitSpend + invSpendM;
     const totalRemaining = currentConfig.budgetM - totalSpent;
@@ -532,16 +562,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Stepper buttons (event delegation)
   // ============================================================
-  document.addEventListener("click", e => {
-    const stepBtn = e.target.closest(".step");
-    if (!stepBtn) return;
-    const row = stepBtn.closest(".energy-row");
-    if (!row) return;
-    const type = row.dataset.type;
-    if (stepBtn.classList.contains("up"))   unitState[type] = (unitState[type] || 0) + 1;
-    if (stepBtn.classList.contains("down")) unitState[type] = Math.max(0, (unitState[type] || 0) - 1);
-    recomputeAll();
-  });
+  document.addEventListener('click', e => {
+  const stepBtn = e.target.closest('.step');
+  if (!stepBtn) return;
+  const row = stepBtn.closest('.energy-row');
+  if (!row) return;
+  const type = row.dataset.type;
+  const source = getSource(type);
+
+  if (stepBtn.classList.contains('up')) {
+    unitState[type] = (unitState[type] || 0) + 1;
+  }
+
+  if (stepBtn.classList.contains('down')) {
+    const current = unitState[type] || 0;
+    if (current <= minUnits(source)) return;
+    unitState[type] = current - 1;
+  }
+
+  recomputeAll(); // recomputeTotals() handles ALL budget calculation
+});
+
+
 
   // ============================================================
   //  Investment checkbox changes

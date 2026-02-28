@@ -3,7 +3,7 @@ Base overview for plan for each Level:
 
 Level 1 Tutorial (2026)
 
-No real timeframe/time lag
+No real timeframe(single year instant updgrades)/time lag
 Largely Tutorial based and teaching how to use tool centered
 Guess and Testable 100% as its just a Sandbox of types
 Lump sum budget (v generous budget too)
@@ -12,17 +12,17 @@ Multiple Multiple ways of winning
 No Summary goal page
 
 
-Level 2 Short Term (2026)
+Level 2 Short Term (2027-2030)
 
-Implement real time lag and set years (time lag is lessened for realism of meeting goals)
+Implemented time lag and set years (time lag is lessened for realism of meeting goals)
 Intended to be non challenging first real attempt
 Guess and testable to some degree but should be difficult and require precision nonetheless
-Lump sum budget (less generous)
+Budget per year
 Singular goal set with single case goals
 Multiple ways of winning requiring levels of precision
 No Summary goal page
 
-Level 3 Long Term (2050)
+Level 3 Long Term (2030 - 2050)
 
 Implement real time lag and set years (time lag should be semi realistic)
 Intended to have difficulty and require proper time to solve it.

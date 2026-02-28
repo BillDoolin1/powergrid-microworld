@@ -703,3 +703,4 @@ button[type="submit"]:hover {
   flex: 0.65 1 0;    /* smaller than the other two */
 }
 
+.units-divested { color: #ff6b6b; }
