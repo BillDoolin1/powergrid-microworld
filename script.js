@@ -678,7 +678,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Supply line: flat at current total capacity across all years
     const supplyNow = parseFloat(totals.totalCap.toFixed(2));
     const supplyStart = startingSupply ?? supplyNow;
-    const numLabels = years.length;
+    numLabels = (currentConfig.chartYears || currentConfig.years).length;
 
     charts.demand.data.datasets[1].data = Array.from({ length: numLabels }, (_, i) =>
       parseFloat((supplyStart + (supplyNow - supplyStart) * (i / (numLabels - 1))).toFixed(2))
@@ -694,7 +694,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // GGE chart: line from starting GGE to current GGE (no fake decline)
     const ggeNow   = parseFloat(totals.ggeNet.toFixed(2));
     const ggeStart = startingGgeNet ?? ggeNow;
-    numLabels = (currentConfig.chartYears || currentConfig.years).length;
       
     // Interpolate a straight line from start → current across all chart labels
     const ggeLineData = Array.from({ length: numLabels }, (_, i) => {
