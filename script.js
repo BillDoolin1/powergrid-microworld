@@ -124,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let yearSpend        = {};
   let lockedUpToIndex  = -1;
   let activeGoalTab    = 0;
+  let chartSnapshots = {}; // { year: { supply, gge } }
 
   // Live baseCap/baseGge per source — updated on each commit merge
   // Keyed by source type: { oil: { baseCap: X, baseGge: Y }, ... }
@@ -131,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let unitState      = {};
   let investmentYear = {};
-
+  
   let charts = { demand: null, fuel: null, gge: null };
 
   // ============================================================
@@ -430,6 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     investmentYear   = {};
     lockedUpToIndex  = -1;
     activeGoalTab    = 0;
+    chartSnapshots = {};
 
     // Initialise mergedBase from ENERGY_SOURCES defaults
     mergedBase = {};
@@ -1076,7 +1078,15 @@ document.addEventListener("DOMContentLoaded", () => {
       setText("goal-budget-spent",     (totals.totalSpent     ?? 0).toFixed(0));
       setText("goal-budget-remaining", (totals.totalRemaining ?? 0).toFixed(0));
     }
+    if (currentConfig.goalYears) {
+      chartSnapshots[currentYear()] = {
+        supply: parseFloat(totals.finalCap.toFixed(2)),
+        gge:    parseFloat(totals.finalGgeNet.toFixed(2)),
+      };
+    }
+
     updateCharts(totals);
+  
   }
 
   // ============================================================
@@ -1102,8 +1112,8 @@ document.addEventListener("DOMContentLoaded", () => {
       data: {
         labels,
         datasets: [
-          { label: "Demand (TWh)",  data: demandData, borderColor: "#204a35", backgroundColor: "rgba(255,107,107,0.1)", borderWidth: 2.5, tension: 0.4, fill: true },
-          { label: "Supply (TWh)", data: Array(yearsForCharts.length).fill(startingSupply), borderColor: "#8acb84", backgroundColor: "rgba(78,205,196,0.1)", borderWidth: 2.5, tension: 0.4, fill: true },
+          { label: "Demand (TWh)",  data: demandData, borderColor: "#204a35", backgroundColor: "rgba(255,107,107,0.1)", borderWidth: 2.5, tension: 0.4, fill: true, spanGaps: true },
+          { label: "Supply (TWh)", data: Array(yearsForCharts.length).fill(startingSupply), borderColor: "#8acb84", backgroundColor: "rgba(78,205,196,0.1)", borderWidth: 2.5, tension: 0.4, fill: true, spanGaps: true },
         ],
       },
       options: chartOptions("TWh"),
@@ -1149,28 +1159,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateCharts(totals) {
     if (!charts.demand || !charts.fuel || !charts.gge) return;
-    const numLabels   = (currentConfig.chartYears || currentConfig.years).length;
-    const supplyNow   = parseFloat(totals.finalCap.toFixed(2));
-    const supplyStart = startingSupply ?? supplyNow;
+    const yearsForCharts = currentConfig.chartYears || currentConfig.years;
+    const yr = currentYear();
+    const numLabels = yearsForCharts.length;
 
-    charts.demand.data.datasets[1].data = Array.from({ length: numLabels }, (_, i) =>
-      parseFloat((supplyStart + (supplyNow - supplyStart) * (i / (numLabels - 1))).toFixed(2))
-    );
+    if (currentConfig.goalYears) {
+      // Level 3: compute real cap/GGE at each chart year from actual online units
+      const supplyData = yearsForCharts.map(y => {
+        if (currentConfig.demandByYear[y] === undefined) return null;
+        let cap = 0;
+        ENERGY_SOURCES.forEach(s => {
+          cap += getBaseCap(s.type) + getOnlineUnits(s.type, y) * s.unitCap;
+        });
+        return parseFloat(cap.toFixed(2));
+      });
+
+      const ggeReduction = getTotalGgeReduction();
+      const ggeData = yearsForCharts.map(y => {
+        if (currentConfig.demandByYear[y] === undefined) return null;
+        let gge = 0;
+        ENERGY_SOURCES.forEach(s => {
+          gge += getBaseGge(s.type) + getOnlineUnits(s.type, y) * s.unitGge;
+        });
+        return parseFloat(Math.max(0, gge - ggeReduction).toFixed(2));
+      });
+
+      charts.demand.data.datasets[1].data = supplyData;
+      charts.gge.data.datasets[0].data    = ggeData;
+
+    } else {
+      // Levels 1 & 2: original interpolated line
+      const supplyNow   = parseFloat(totals.finalCap.toFixed(2));
+      const supplyStart = startingSupply ?? supplyNow;
+      charts.demand.data.datasets[1].data = Array.from({ length: numLabels }, (_, i) =>
+        parseFloat((supplyStart + (supplyNow - supplyStart) * (i / (numLabels - 1))).toFixed(2))
+      );
+
+      const ggeNow   = parseFloat(totals.finalGgeNet.toFixed(2));
+      const ggeStart = startingGgeNet ?? ggeNow;
+      charts.gge.data.datasets[0].data = Array.from({ length: numLabels }, (_, i) =>
+        parseFloat((ggeStart + (ggeNow - ggeStart) * (i / (numLabels - 1))).toFixed(2))
+      );
+    }
+
     charts.demand.update("none");
 
-    const yr = currentYear();
     charts.fuel.data.datasets[0].data = ENERGY_SOURCES.map(s =>
       parseFloat((getBaseCap(s.type) + getOnlineUnits(s.type, yr) * s.unitCap).toFixed(2))
     );
     charts.fuel.update("none");
-
-    const ggeNow   = parseFloat(totals.finalGgeNet.toFixed(2));
-    const ggeStart = startingGgeNet ?? ggeNow;
-    charts.gge.data.datasets[0].data = Array.from({ length: numLabels }, (_, i) =>
-      parseFloat((ggeStart + (ggeNow - ggeStart) * (i / (numLabels - 1))).toFixed(2))
-    );
     charts.gge.update("none");
   }
+
+
 
   // ============================================================
   //  Timer
