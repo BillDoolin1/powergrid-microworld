@@ -8,7 +8,7 @@ const ENERGY_SOURCES = [
   { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 4 },
   { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 1 },
   { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 5 },
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 30.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
   { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 2 },
 ];
 
@@ -20,7 +20,7 @@ const LEVELS = {
     budgetM: 5000,
     capacityTarget: 50,
     ggeTarget: 24,
-    years: [2026],
+    years: [2026],  
     chartYears: ["", "", 2026, "", ""],
     startingMix: {},
     demandByYear: {"":50, 2026: 50, "":50 },
@@ -33,7 +33,7 @@ const LEVELS = {
   },
   2: {
     name: "Short-Term Planning",
-    budgetByYear: { 2027: 700, 2028: 650, 2029: 400, 2030: 900 },
+    budgetByYear: { 2027: 700, 2028: 650, 2029: 400, 2030: 150 },
     years: [2027, 2028, 2029, 2030],
     startingMix: {},
     ggeTargetByYear: { 2027: 25, 2028: 23, 2029: 22, 2030: 20 },
@@ -47,19 +47,18 @@ const LEVELS = {
     ],
   },
   3: {
-    name: "2045 Long-Term Challenge",
-    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200 },
-    years: [2030, 2035, 2040, 2045],
+    name: "2050 Long-Term Challenge",
+    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200, 2050: 1300 },
+    years: [2030, 2035, 2040, 2045, 2050],
     startingMix: {},
-    goalYears: [2035, 2040, 2045],
-    // Which planning years count toward each goal year's budget check
+    goalYears: [2035, 2040, 2050],
     goalBudgetYears: {
       2035: [2030, 2035],
-      2040: [2040],
-      2045: [2045],
+      2040: [2035, 2040],
+      2050: [2045, 2050],
     },
-    ggeTargetByYear: { 2030: 27, 2035: 18, 2040: 14, 2045: 9 },
-    demandByYear:    { 2030: 41, 2035: 44, 2040: 47, 2045: 51 },
+    ggeTargetByYear: { 2030: 27, 2035: 18, 2040: 14, 2045: 11, 2050: 9 },
+    demandByYear:    { 2030: 41, 2035: 44, 2040: 47, 2045: 49, 2050: 51 },
     useTimeLag: true,
     lockForward: true,
     investments: [
@@ -257,6 +256,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return latestYr;
   }
+  function syncGoalTab() {
+  if (!currentConfig.goalYears) return;
+  const yr        = currentYear();
+  const goalYears = currentConfig.goalYears;
+  // Find the index of the first goal year >= current planning year
+  const idx = goalYears.findIndex(gy => gy >= yr);
+  activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
+}
+
 
   // ============================================================
   //  Data merge on commit
@@ -941,6 +949,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     nextYearBtn.disabled = !currentConfig.lockForward && currentYearIndex === currentConfig.years.length - 1;
 
+    syncGoalTab();       // ← add this line
     renderEnergyTable();
     recomputeAll();
   }
