@@ -575,10 +575,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (stepBtn.classList.contains('down')) {
-    const current = unitState[type] || 0;
-    if (current <= minUnits(source)) return;
+  const current = unitState[type] || 0;
+  const currentCap = source.baseCap + current * source.unitCap;
+  if (currentCap < 0) return; // already fully divested, do nothing
+  const nextCap = source.baseCap + (current - 1) * source.unitCap;
+  if (nextCap < 0) {
+    unitState[type] = Math.ceil(-source.baseCap / source.unitCap);
+  } else {
     unitState[type] = current - 1;
   }
+}
+
+
 
   recomputeAll(); // recomputeTotals() handles ALL budget calculation
 });
