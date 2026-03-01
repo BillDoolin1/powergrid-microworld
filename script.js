@@ -4,18 +4,18 @@
 
 // ---- Energy source definitions (shared across all levels) ----
 const ENERGY_SOURCES = [
-  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 1.0, operating: 110, leadTime: 2 },
-  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 1.2, operating:  70, leadTime: 4 },
-  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 5 },
-  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 3 },
-  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 6 },
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.10, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
-  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 4 },
+  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 1.0, operating: 110, leadTime: 3 },
+  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 1.2, operating:  70, leadTime: 2 },
+  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 4 },
+  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 1 },
+  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 5 },
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
+  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 2  },
 ];
+
 
 const DIVESTMENT_REFUND_RATE = 0.25;
 
-// ---- Level configurations ----
 const LEVELS = {
   1: {
     name: "Tutorial",
@@ -66,9 +66,6 @@ const LEVELS = {
 
 const levelEverCompleted = { 1: false, 2: false, 3: false };
 
-// ============================================================
-//  Bootstrap on DOM ready
-// ============================================================
 document.addEventListener("DOMContentLoaded", () => {
 
   const startScreen          = document.getElementById("start-screen");
@@ -90,12 +87,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const timerEl               = document.getElementById("timer");
   const pauseBtn              = document.getElementById("pause-btn");
 
-  const goalsTitle            = document.getElementById("goals-title");
-  const goalsList             = document.getElementById("goals-list");
-  const energyTableBody       = document.getElementById("energy-table-body");
-  const investmentList        = document.getElementById("investment-list");
-  const capTotalEl            = document.getElementById("cap-total");
-  const ggeTotalEl            = document.getElementById("gge-total");
+  const goalsTitle       = document.getElementById("goals-title");
+  const goalsList        = document.getElementById("goals-list");
+  const energyTableBody  = document.getElementById("energy-table-body");
+  const investmentList   = document.getElementById("investment-list");
+  const capTotalEl       = document.getElementById("cap-total");
+  const ggeTotalEl       = document.getElementById("gge-total");
 
   const pauseOverlay          = document.getElementById("pause-overlay");
   const resumeBtn             = document.getElementById("resume-btn");
@@ -110,7 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const bestTimes = { 1: null, 2: null, 3: null };
 
-  // ---- Game state ----
   const levelCompleted = { 1: false, 2: false, 3: false };
   let startingGgeNet   = null;
   let startingSupply   = null;
@@ -122,9 +118,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let gamePaused       = false;
   let yearSpend        = {};
 
-  // Level 1: { oil: 2 }  (flat integer)
-  // Level 2+: { oil: { 2027: 1, 2028: 2 } }  (keyed by year committed)
+  // Level 1: { oil: 2 }
+  // Level 2+: { oil: { 2027: 1, 2028: 2 } }
   let unitState = {};
+
+  // Tracks which year each investment checkbox was committed in
+  // investmentYear[invId] = year it was checked
+  let investmentYear = {};
 
   let charts = { demand: null, fuel: null, gge: null };
 
@@ -169,7 +169,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Time lag helpers ----
 
-  // Sum of ALL committed units across all years (for display)
   function getTotalUnits(type) {
     if (!currentConfig.useTimeLag) return unitState[type] || 0;
     const byYear = unitState[type];
@@ -177,8 +176,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return Object.values(byYear).reduce((s, v) => s + v, 0);
   }
 
-  // Units ONLINE as of a given year — only positive units past their lead time,
-  // negative units (divestments) are not used in Level 2 so this stays clean
   function getOnlineUnits(type, asOfYear) {
     if (!currentConfig.useTimeLag) return unitState[type] || 0;
     const source = getSource(type);
@@ -186,16 +183,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!byYear || typeof byYear !== "object") return 0;
     let online = 0;
     for (const [yr, count] of Object.entries(byYear)) {
-      if (count > 0 && Number(yr) + source.leadTime <= asOfYear) {
+      if (count > 0) {
+        if (Number(yr) + source.leadTime <= asOfYear) online += count;
+      } else {
         online += count;
       }
-      // Negative counts (Level 3 divestments) handled here too
-      if (count < 0) online += count;
     }
     return online;
   }
 
-  // Units committed but NOT yet online (in construction pipeline)
   function getPendingUnits(type) {
     if (!currentConfig.useTimeLag) return 0;
     const source = getSource(type);
@@ -211,6 +207,21 @@ document.addEventListener("DOMContentLoaded", () => {
     return pending;
   }
 
+
+  // Returns the year with the most recently committed positive units
+  // Used to refund the correct year's budget when cancelling
+  function getMostRecentInvestedYear(type) {
+    const byYear = unitState[type];
+    if (!byYear || typeof byYear !== "object") return null;
+    let latestYr = null;
+    for (const [yr, count] of Object.entries(byYear)) {
+      if (count > 0) {
+        if (latestYr === null || Number(yr) > latestYr) latestYr = Number(yr);
+      }
+    }
+    return latestYr;
+  }
+
   // ============================================================
   //  Level loading
   // ============================================================
@@ -222,6 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentConfig    = LEVELS[levelNum];
     currentYearIndex = 0;
     unitState        = {};
+    investmentYear   = {};
 
     if (currentConfig.useTimeLag) {
       ENERGY_SOURCES.forEach(s => { unitState[s.type] = {}; });
@@ -231,7 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Starting values from base mix only
     let initialGge = 0;
     let initialCap = 0;
     ENERGY_SOURCES.forEach(s => {
@@ -241,7 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startingGgeNet = parseFloat(Math.max(0, initialGge).toFixed(2));
     startingSupply = parseFloat(initialCap.toFixed(2));
 
-    // Reset per-year spend
     yearSpend = {};
     if (currentConfig.budgetByYear) {
       Object.keys(currentConfig.budgetByYear).forEach(yr => {
@@ -249,7 +259,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Header
     if (currentConfig.budgetByYear) {
       const yr = currentConfig.years[0];
       headerBudgetSpent.textContent     = "0";
@@ -378,7 +387,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <input type="checkbox"
                  id="inv-${inv.id}"
                  data-cost="${inv.costM}"
-                 data-gge-reduction="${inv.ggeReduction}">
+                 data-gge-reduction="${inv.ggeReduction}"
+                 data-inv-id="${inv.id}">
           <span>${inv.label} (Cost &euro;${inv.costM}M)</span>
         </label>
       </div>`).join("");
@@ -408,32 +418,25 @@ document.addEventListener("DOMContentLoaded", () => {
         unitsEl.textContent = String(totalUnits);
         unitsEl.classList.toggle("units-divested", totalUnits < 0);
 
-        // Update "being built" label
+        // Rebuild pending label based on global pending (all years, not just current)
         const existingLabel = unitsEl.parentElement.querySelector(".pending-label");
         if (existingLabel) existingLabel.remove();
         if (pendingUnits > 0) {
-          const span = document.createElement("span");
-          span.className    = "pending-label";
+          const span         = document.createElement("span");
+          span.className     = "pending-label";
           span.style.cssText = "color:#ffd166; font-size:0.8rem; margin-left:4px;";
-          span.title        = "Units under construction";
-          span.textContent  = `(${pendingUnits} being built)`;
+          span.title         = "Units under construction";
+          span.textContent   = `(${pendingUnits} being built)`;
           unitsEl.insertAdjacentElement("afterend", span);
         }
       }
 
-      // Down button floor check — in Level 2 only block if nothing committed this year
       const downBtn = document.querySelector(`.energy-row[data-type="${s.type}"] .step.down`);
       if (downBtn) {
-        let atFloor;
-        if (currentConfig.useTimeLag && currentLevel === 2) {
-          // Can only undo same-year investments — floor is 0 committed this year
-          const thisYrCount = (unitState[s.type] && unitState[s.type][yr]) || 0;
-          atFloor = thisYrCount <= 0;
-        } else {
-          atFloor = cap <= 0 || totalUnits <= minUnits(s);
-        }
+        const capAtNext = s.baseCap + (totalUnits - 1) * s.unitCap;
+        const atFloor   = capAtNext < 0;
         downBtn.disabled      = atFloor;
-        downBtn.title         = atFloor ? "Nothing to undo this year" : "";
+        downBtn.title         = atFloor ? "Cannot divest further – capacity at zero" : "";
         downBtn.style.opacity = atFloor ? "0.35" : "";
         downBtn.style.cursor  = atFloor ? "not-allowed" : "";
       }
@@ -445,18 +448,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   function recomputeTotals() {
     const yr = currentYear();
+
     let totalCap = 0;
     let totalGge = 0;
-
-    // Capacity and GGE always use FINAL year for goal checking
-    // but display current year's online capacity
     ENERGY_SOURCES.forEach(s => {
       const onlineUnits = getOnlineUnits(s.type, yr);
       totalCap += s.baseCap + onlineUnits * s.unitCap;
       totalGge += s.baseGge + onlineUnits * s.unitGge;
     });
 
-    // For goal MET check, use final year's projected online units
     const finalYr = finalYear();
     let finalCap = 0;
     let finalGge = 0;
@@ -478,7 +478,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const ggeNet      = Math.max(0, totalGge - ggeReduction);
     const finalGgeNet = Math.max(0, finalGge - ggeReduction);
 
-    // Unit spend — Level 1 flat calculation only
     const unitSpend = !currentConfig.useTimeLag ? ENERGY_SOURCES.reduce((sum, s) => {
       const units       = unitState[s.type] || 0;
       const costPerUnit = s.construct + s.operating * 4 * 0.10;
@@ -493,7 +492,6 @@ document.addEventListener("DOMContentLoaded", () => {
     capTotalEl.textContent = totalCap.toFixed(2);
     ggeTotalEl.textContent = totalGge.toFixed(2);
 
-    // Header budget
     if (currentConfig.budgetByYear) {
       const cap       = currentConfig.budgetByYear[yr];
       const spent     = getYearSpend(yr);
@@ -507,7 +505,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headerBudgetRemaining.textContent = totalRemaining.toFixed(0);
     }
 
-    // Percentages (based on current year online)
     ENERGY_SOURCES.forEach(s => {
       const onlineUnits = getOnlineUnits(s.type, yr);
       const cap = s.baseCap + onlineUnits * s.unitCap;
@@ -516,7 +513,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (el) el.textContent = pct;
     });
 
-    // Goals — capacity and GGE checked against FINAL year projection
     const capMet = finalCap >= capacityTarget();
     const ggeMet = finalGgeNet <= ggeTarget();
     let budgetMet;
@@ -533,7 +529,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     checkLevelCompletion(capMet, ggeMet, budgetMet);
-
     return { totalCap, totalGge, ggeNet, finalCap, finalGgeNet, capMet, ggeMet, budgetMet, totalSpent, totalRemaining };
   }
 
@@ -615,94 +610,114 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Stepper buttons
   // ============================================================
-  document.addEventListener("click", e => {
-    const stepBtn = e.target.closest(".step");
-    if (!stepBtn) return;
-    const row = stepBtn.closest(".energy-row");
-    if (!row) return;
-    const type   = row.dataset.type;
-    const source = getSource(type);
+document.addEventListener("click", e => {
+  const stepBtn = e.target.closest(".step");
+  if (!stepBtn) return;
+  const row = stepBtn.closest(".energy-row");
+  if (!row) return;
+  const type   = row.dataset.type;
+  const source = getSource(type);
 
-    if (!currentConfig.useTimeLag) {
-      // ---- Level 1: flat, no time lag, no budget tracking on units ----
-      if (stepBtn.classList.contains("up")) {
-        unitState[type] = (unitState[type] || 0) + 1;
-      }
-      if (stepBtn.classList.contains("down")) {
-        const current    = unitState[type] || 0;
-        const currentCap = source.baseCap + current * source.unitCap;
-        if (currentCap <= 0) return;
-        const nextCap    = source.baseCap + (current - 1) * source.unitCap;
-        unitState[type]  = nextCap < 0
-          ? Math.ceil(-source.baseCap / source.unitCap)
-          : current - 1;
-      }
+  if (!currentConfig.useTimeLag) {
+    // ---- Level 1: flat, no time lag ----
+    if (stepBtn.classList.contains("up")) {
+      unitState[type] = (unitState[type] || 0) + 1;
+    }
+    if (stepBtn.classList.contains("down")) {
+      const current    = unitState[type] || 0;
+      const currentCap = source.baseCap + current * source.unitCap;
+      if (currentCap <= 0) return;
+      const nextCap   = source.baseCap + (current - 1) * source.unitCap;
+      unitState[type] = nextCap < 0
+        ? Math.ceil(-source.baseCap / source.unitCap)
+        : current - 1;
+    }
 
-    } else {
-      // ---- Level 2+: time lag, per-year unitState ----
-      const yr     = currentYear();
-      const byYear = unitState[type];
-      const thisYr = byYear[yr] || 0;
+  } else {
+    // ---- Level 2+: time lag, per-year unitState ----
+    const yr     = currentYear();
+    const byYear = unitState[type];
+    const thisYr = byYear[yr] || 0;
+    const total  = getTotalUnits(type);
 
-      if (stepBtn.classList.contains("up")) {
-        byYear[yr] = thisYr + 1;
-        // Charge construction cost to this year's budget
-        if (currentConfig.budgetByYear) {
+    if (stepBtn.classList.contains("up")) {
+      byYear[yr] = thisYr + 1;
+      if (currentConfig.budgetByYear) {
+        if (total < 0) {
+          // Undoing a base divestment — reverse the 0.25 refund
+          yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+        } else {
+          // Normal new investment
           yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
         }
       }
-
-      if (stepBtn.classList.contains("down")) {
-        if (currentLevel === 2) {
-          // Level 2: can only undo same-year investments, no penalty
-          if (thisYr <= 0) return;
-          byYear[yr] = thisYr - 1;
-          // Full refund — return cost to the year it was spent
-          if (currentConfig.budgetByYear) {
-            yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100);
-          }
-        } else {
-          // Level 3+: can undo same-year free, or divest prior-year at full cost
-          if (thisYr > 0) {
-            // Undo same-year investment — full refund
-            byYear[yr] = thisYr - 1;
-            if (currentConfig.budgetByYear) {
-              yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100);
-            }
-          } else {
-            // Divest prior-year or base unit — find the most recent year with units
-            // and remove one, charging full decommission cost to current year
-            const onlineUnits = getOnlineUnits(type, yr);
-            if (onlineUnits <= 0 && source.baseCap <= 0) return;
-            byYear[yr] = thisYr - 1;
-            if (currentConfig.budgetByYear) {
-              yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
-            }
-          }
-        }
-        // Clean up zero entries
-        if (byYear[yr] === 0) delete byYear[yr];
-      }
+      if (byYear[yr] === 0) delete byYear[yr];
     }
 
-    recomputeAll();
-  });
+    if (stepBtn.classList.contains("down")) {
+      // Hard floor: capacity cannot go below zero
+      const capAtNext = source.baseCap + (total - 1) * source.unitCap;
+      if (capAtNext < 0) return;
 
+      if (currentConfig.budgetByYear) {
+        if (total > 0) {
+          // Refund AND remove unit from the most recent invested year
+          const refundYr = getMostRecentInvestedYear(type);
+          if (refundYr !== null) {
+            if (!yearSpend[refundYr]) yearSpend[refundYr] = { units: 0, investments: 0 };
+            yearSpend[refundYr].units = (yearSpend[refundYr].units || 0) - (source.construct * 100);
+            // Remove the unit from that year, not the current year
+            byYear[refundYr] = (byYear[refundYr] || 0) - 1;
+            if (byYear[refundYr] === 0) delete byYear[refundYr];
+          }
+        } else {
+          // Divesting below 0 — 0.25 rate refund to current year
+          yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+          byYear[yr] = thisYr - 1;
+          if (byYear[yr] === 0) delete byYear[yr];
+        }
+      } else {
+        // No budget tracking — still remove from most recent invested year if possible
+        const refundYr = getMostRecentInvestedYear(type);
+        if (refundYr !== null) {
+          byYear[refundYr] = (byYear[refundYr] || 0) - 1;
+          if (byYear[refundYr] === 0) delete byYear[refundYr];
+        } else {
+          byYear[yr] = thisYr - 1;
+          if (byYear[yr] === 0) delete byYear[yr];
+        }
+      }
+    }
+  }
+
+  recomputeAll();
+});
   // ============================================================
   //  Investment checkbox changes
   // ============================================================
   document.addEventListener("change", e => {
     if (e.target.type === "checkbox" && e.target.closest("#investment-list")) {
+      const invId = e.target.dataset.invId;
+      const cost  = num(e.target.dataset.cost, 0);
+
       if (currentConfig.budgetByYear) {
-        const yr   = currentYear();
-        const cost = num(e.target.dataset.cost, 0);
-        yearSpend[yr].investments = yearSpend[yr].investments || 0;
+        const yr = currentYear();
         if (e.target.checked) {
-          yearSpend[yr].investments += cost;
+          // Record which year this investment was made
+          investmentYear[invId] = yr;
+          if (!yearSpend[yr]) yearSpend[yr] = { units: 0, investments: 0 };
+          yearSpend[yr].investments = (yearSpend[yr].investments || 0) + cost;
         } else {
-          yearSpend[yr].investments = Math.max(0, yearSpend[yr].investments - cost);
+          // Refund to the year it was originally committed, not the current year
+          const originalYr = investmentYear[invId] ?? yr;
+          if (!yearSpend[originalYr]) yearSpend[originalYr] = { units: 0, investments: 0 };
+          yearSpend[originalYr].investments = (yearSpend[originalYr].investments || 0) - cost;
+          // Clamp to 0 to prevent negative investment spend in that year
+          if (yearSpend[originalYr].investments < 0) yearSpend[originalYr].investments = 0;
+          delete investmentYear[invId];
         }
       }
+
       recomputeAll();
     }
   });
@@ -714,9 +729,8 @@ document.addEventListener("DOMContentLoaded", () => {
     recomputeRows();
     const totals = recomputeTotals();
     renderGoals(totals.capMet, totals.ggeMet, totals.budgetMet);
-    // Display current year values in goal spans
-    setText("goal-cap-current", totals.finalCap.toFixed(2));
-    setText("goal-gge-current", totals.finalGgeNet.toFixed(2));
+    setText("goal-cap-current",      totals.finalCap.toFixed(2));
+    setText("goal-gge-current",      totals.finalGgeNet.toFixed(2));
     setText("goal-budget-spent",     (totals.totalSpent     ?? 0).toFixed(0));
     setText("goal-budget-remaining", (totals.totalRemaining ?? 0).toFixed(0));
     updateCharts(totals);
@@ -895,9 +909,6 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshLevelButtons();
   });
 
-  // ============================================================
-  //  Name form
-  // ============================================================
   nameForm.addEventListener("submit", e => {
     e.preventDefault();
     const name = nameInput.value.trim();
@@ -911,9 +922,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2000);
   });
 
-  // ============================================================
-  //  Level select buttons
-  // ============================================================
   levelButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       const level = Number(btn.dataset.level);
