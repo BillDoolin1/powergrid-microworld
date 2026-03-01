@@ -1,0 +1,45 @@
+
+HOW SUPPLY VERSUS DEMAND IS TRACKED 
+
+Supply vs demand tracked each year:
+
+realistic - if supply doenst reach demand thats a big issue and should be a big turning point 
+would require heavy investment into non renewable energy - non renewable energy isnt well tracked here
+i.e. its assumed that the oil production currently being produced can be upkept despite lacking oil 
+reserves(maybe imported)
+might be too fidgety for a microworld and would distract from main game
+
+supply vs demand tracked only in core years:
+unrealistic 
+would give more freedom and allow the focus on different learning oppurtunities as opposed to juggling 
+non renewables
+
+
+HOW DIVESTMENT WORKS WITH TIME lag
+
+ignore divestment - can freely divest at all times at the same rates as normal
+
+divestment is punished at 100% the divestment rate we usually use
+
+divestment is punished at an ammended divestment rate- less harsh divestment rates used
+
+additiional poi is how divestment will affect investment - need to ensure if a unit is divested
+ from the capacity never gets actuated/ stops being actuated
+
+
+
+ DECISIONS: 
+ Core years:
+ Decided on just core years in the end The learning goal is understanding the long-term energy transition,
+ not too make the user spend all the time juggling between implementing non renewables on and off till the
+ renewables hit. Ireland already gets a lot of its power from imported oil/gas therefore i think its 
+ reasonable to assume that discrepancies there should be covered by this - could be worth seeing whether
+ budget should be tanked for this - hmmm
+
+Divestment with Time Lag:
+ammended divestment rate - nice middle ground beween harsh and too lenient -realistic to real world too
+operation cost saved but demoliition costs etc.
+need to implement a way to seperate the fuel mix table to tell what got added each year to know whether 
+to apply the full rata or not (if its cliicked then unclicked straight away in the plan we should refund full)
+
+POI

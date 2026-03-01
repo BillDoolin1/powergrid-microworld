@@ -12,7 +12,7 @@ const ENERGY_SOURCES = [
   { type: "nuclear",  label: "Nuclear",       baseCap:  0.0, baseGge:  0.10, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 7 },
   { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 4 },
 ];
-const DIVESTMENT_REFUND_RATE = 0.5; // 50% refund on divested units - change this later per fuel source thigy - divest return = 100%op cost - provision removal e.g. demo cost
+const DIVESTMENT_REFUND_RATE = 0.25; // 25% refund on divested units - change this later per fuel source thigy - divest return = 100%op cost - provision removal e.g. demo cost
 
 // ---- Level configurations ----
 const LEVELS = {
