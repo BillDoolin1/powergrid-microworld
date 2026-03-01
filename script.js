@@ -523,7 +523,7 @@ function renderGoals(capMet = false, ggeMet = false, budgetMet = false) {
     // Check level completion
     checkLevelCompletion(capMet, ggeMet, budgetMet);
 
-    return { totalCap, totalGge, ggeNet, capMet, ggeMet, budgetMet };
+    return { totalCap, totalGge, ggeNet, capMet, ggeMet, budgetMet, totalSpent, totalRemaining };
   }
 
   
@@ -642,37 +642,46 @@ function renderGoals(capMet = false, ggeMet = false, budgetMet = false) {
     if (!row) return;
     const type = row.dataset.type;
     const source = getSource(type);
-
     if (stepBtn.classList.contains('up')) {
-      unitState[type] = (unitState[type] || 0) + 1;
+  const currentUnits = unitState[type] || 0;
+  unitState[type] = currentUnits + 1;
 
-      // ---- NEW ----
-      if (currentConfig.budgetByYear) {
-        const yr = currentYear();
-        yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
-      }
-      // ---- END NEW ----
+  if (currentConfig.budgetByYear) {
+    const yr = currentYear();
+    if (currentUnits < 0) {
+      // Undoing a divestment — reverse the refund that was given
+      const refund = source.construct * 100 * DIVESTMENT_REFUND_RATE;
+      yearSpend[yr].units = (yearSpend[yr].units || 0) + refund;
+    } else {
+      // Normal investment — charge construction cost
+      yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
     }
+  }
+}
 
-    if (stepBtn.classList.contains('down')) {
-      const current = unitState[type] || 0;
-      const currentCap = source.baseCap + current * source.unitCap;
-      if (currentCap < 0) return;
-      const nextCap = source.baseCap + (current - 1) * source.unitCap;
-      if (nextCap < 0) {
-        unitState[type] = Math.ceil(-source.baseCap / source.unitCap);
-      } else {
-        unitState[type] = current - 1;
-      }
+if (stepBtn.classList.contains('down')) {
+  const current = unitState[type] || 0;
+  const currentCap = source.baseCap + current * source.unitCap;
+  if (currentCap < 0) return;
+  const nextCap = source.baseCap + (current - 1) * source.unitCap;
+  if (nextCap < 0) {
+    unitState[type] = Math.ceil(-source.baseCap / source.unitCap);
+  } else {
+    unitState[type] = current - 1;
+  }
 
-      // ---- NEW ----
-      if (currentConfig.budgetByYear) {
-        const yr = currentYear();
-        const refund = source.construct * 100 * DIVESTMENT_REFUND_RATE;
-        yearSpend[yr].units = Math.max(0, (yearSpend[yr].units || 0) - refund);
-      }
-      // ---- END NEW ----
+  if (currentConfig.budgetByYear) {
+    const yr = currentYear();
+    if (current > 0) {
+      // Undoing a normal investment — reverse the construction charge
+      yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100);
+    } else {
+      // Going further into divestment — apply divestment refund
+      yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100 * DIVESTMENT_REFUND_RATE);
     }
+  }
+}
+
 
     recomputeAll();
   });
