@@ -10,6 +10,7 @@ Lump sum budget (v generous budget too)
 Singular goal set with single case goals
 Multiple Multiple ways of winning
 No Summary goal page
+matching supply demand single year only
 
 
 Level 2 Short Term (2027-2030)
@@ -21,6 +22,7 @@ Budget per year
 Singular goal set with single case goals
 Multiple ways of winning requiring levels of precision
 No Summary goal page
+matching supply demand single year only/ multi yeaar ???? - decide
 
 Level 3 Long Term (2030 - 2050)
 
@@ -31,3 +33,4 @@ Several budgets to use over the years
 Several goal sets to complete each year gap
 Few ways of winning requiring "picking a path" (nuclear path, data centre money centric path, perfectionist's path)(maybe achievements lol)
 Summary goal page
+matching supply demand multi year !!

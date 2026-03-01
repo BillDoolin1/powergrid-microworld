@@ -33,7 +33,7 @@ const LEVELS = {
   },
   2: {
     name: "Short-Term Planning",
-    budgetM: 2000,
+    budgetByYear: { 2027: 700, 2028: 650, 2029: 400, 2030: 900 }, 
     years: [2027, 2028, 2029, 2030],
     startingMix: { },
     ggeTargetByYear:      {  2027: 25, 2028: 23, 2029: 22, 2030: 20 },
@@ -123,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let gameTimer        = 0;
   let timerInterval    = null;
   let gamePaused       = false;
+  let yearSpend = {};
 
 
 
@@ -190,9 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
   } 
 
   function minUnits(source) {
-  // Can divest until base capacity would hit zero
-  return -Math.floor(source.baseCap / source.unitCap);
-}
+    // Can divest until base capacity would hit zero
+    return -Math.floor(source.baseCap / source.unitCap);
+  }
+  function getYearSpend(yr) {
+    if (!yearSpend[yr]) return 0;
+    return (yearSpend[yr].units || 0) + (yearSpend[yr].investments || 0);
+  }
+
+
 
 
 
@@ -207,6 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentConfig    = LEVELS[levelNum];
     currentYearIndex = 0;
     unitState        = {};
+
 
     // Initialise units from startingMix
     ENERGY_SOURCES.forEach(s => {
@@ -232,10 +240,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     startingSupply = parseFloat(initialCap.toFixed(2));
 
-    // Header
-    levelTitle.textContent = `Level ${levelNum}: ${currentConfig.name}`;
-    headerBudgetSpent.textContent    = "0";
-    headerBudgetRemaining.textContent = currentConfig.budgetM;
+    // Reset per-year spend for levels that use budgetByYear
+    yearSpend = {};
+    if (currentConfig.budgetByYear) {
+      Object.keys(currentConfig.budgetByYear).forEach(yr => {
+        yearSpend[Number(yr)] = { units: 0, investments: 0 };
+      });
+    }
+
+
+    // Header budget display
+    if (currentConfig.budgetByYear) {
+      const yr = currentConfig.years[0];
+      headerBudgetSpent.textContent    = "0";
+      headerBudgetRemaining.textContent = currentConfig.budgetByYear[yr];
+    } else {
+      headerBudgetSpent.textContent    = "0";
+      headerBudgetRemaining.textContent = currentConfig.budgetM;
+    }
+
 
     // Year controls
     if (currentConfig.years.length > 1) {
@@ -271,35 +294,66 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Render: Goals
   // ============================================================
-  function renderGoals() {
-    goalsTitle.textContent = `Level ${currentLevel} Goals (by ${finalYear()})`;
-    goalsList.innerHTML = `
-      <div class="goal" id="goal-capacity">
-        <span>Match Projected Demand</span>
-        <span class="goal-progress">
-          <span id="goal-cap-current">0.00</span> /
-          <span id="goal-cap-target">${capacityTarget()}</span> TWh
-        </span>
-        <span class="goal-status incomplete" id="goal-cap-status">&#10007;</span>
+function renderGoals(capMet = false, ggeMet = false, budgetMet = false) {
+  goalsTitle.textContent = `Level ${currentLevel} Goals (by ${finalYear()})`;
+
+  let budgetGoalHtml;
+  if (currentConfig.budgetByYear) {
+    const years = currentConfig.years;
+    const allUnder = years.every(yr => getYearSpend(yr) <= currentConfig.budgetByYear[yr]);
+
+    const subRows = years.map(yr => {
+      const cap   = currentConfig.budgetByYear[yr];
+      const spent = getYearSpend(yr);
+      const ok    = spent <= cap;
+      return `
+        <div class="goal" style="padding-left:16px; font-size:0.82rem; opacity:0.9;">
+          <span>${yr}</span>
+          <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${cap}M</span>
+          <span class="goal-status ${ok ? 'complete' : 'incomplete'}">${ok ? '&#10003;' : '&#10007;'}</span>
+        </div>`;
+    }).join("");
+
+    budgetGoalHtml = `
+      <div class="goal" id="goal-budget">
+        <span>Under Budget Every Year</span>
+        <span class="goal-progress"></span>
+        <span class="goal-status ${allUnder ? 'complete' : 'incomplete'}" id="goal-budget-status">${allUnder ? '&#10003;' : '&#10007;'}</span>
       </div>
-      <div class="goal" id="goal-gge">
-        <span>Reduce Greenhouse Gas Emissions</span>
-        <span class="goal-progress">
-          <span id="goal-gge-current">0.00</span> /
-          <span id="goal-gge-target">${ggeTarget()}</span> MtCO&#8322;eq
-        </span>
-        <span class="goal-status incomplete" id="goal-gge-status">&#10007;</span>
-      </div>
+      ${subRows}`;
+  } else {
+    budgetGoalHtml = `
       <div class="goal" id="goal-budget">
         <span>Stay Within Budget</span>
         <span class="goal-progress">
           &euro;<span id="goal-budget-spent">0</span>M spent
           (&euro;<span id="goal-budget-remaining">${currentConfig.budgetM}</span>M left)
         </span>
-        <span class="goal-status incomplete" id="goal-budget-status">&#10007;</span>
-      </div>
-    `;
+        <span class="goal-status ${budgetMet ? 'complete' : 'incomplete'}" id="goal-budget-status">${budgetMet ? '&#10003;' : '&#10007;'}</span>
+      </div>`;
   }
+
+  goalsList.innerHTML = `
+    <div class="goal" id="goal-capacity">
+      <span>Match Projected Demand</span>
+      <span class="goal-progress">
+        <span id="goal-cap-current">0.00</span> /
+        <span id="goal-cap-target">${capacityTarget()}</span> TWh
+      </span>
+      <span class="goal-status ${capMet ? 'complete' : 'incomplete'}" id="goal-cap-status">${capMet ? '&#10003;' : '&#10007;'}</span>
+    </div>
+    <div class="goal" id="goal-gge">
+      <span>Reduce Greenhouse Gas Emissions</span>
+      <span class="goal-progress">
+        <span id="goal-gge-current">0.00</span> /
+        <span id="goal-gge-target">${ggeTarget()}</span> MtCO&#8322;eq
+      </span>
+      <span class="goal-status ${ggeMet ? 'complete' : 'incomplete'}" id="goal-gge-status">${ggeMet ? '&#10003;' : '&#10007;'}</span>
+    </div>
+    ${budgetGoalHtml}
+  `;
+}
+
 
   // ============================================================
   //  Render: Energy Table rows
@@ -420,10 +474,21 @@ document.addEventListener("DOMContentLoaded", () => {
     capTotalEl.textContent = totalCap.toFixed(2);
     ggeTotalEl.textContent = totalGge.toFixed(2);
 
-    // Update header budget
-    headerBudgetSpent.textContent     = totalSpent.toFixed(0);
-    headerBudgetRemaining.textContent = totalRemaining.toFixed(0);
-
+    if (currentConfig.budgetByYear) {
+      const yr = currentYear();
+      const cap   = currentConfig.budgetByYear[yr];
+      const spent = getYearSpend(yr);
+      const remaining = cap - spent;
+      headerBudgetSpent.textContent     = spent.toFixed(2);
+      headerBudgetRemaining.textContent = remaining.toFixed(2);
+      // Flash red if over budget for this year
+      const budgetEl = document.querySelector(".level-header-budget");
+      budgetEl.classList.toggle("over-budget", remaining < 0);
+    } else {
+      headerBudgetSpent.textContent     = totalSpent.toFixed(0);
+      headerBudgetRemaining.textContent = totalRemaining.toFixed(0);
+      // existing global budget logic stays here unchanged
+    }
     // Update goal displays
     setText("goal-cap-current",      totalCap.toFixed(2));
     setText("goal-gge-current",      ggeNet.toFixed(2));
@@ -438,23 +503,30 @@ document.addEventListener("DOMContentLoaded", () => {
       if (el) el.textContent = pct;
     });
 
-    // Goal statuses
-    const capMet    = totalCap  >= capacityTarget();
-    const ggeMet    = ggeNet    <= ggeTarget();
-    const budgetMet = totalSpent <= currentConfig.budgetM;
+       // Goal statuses
+    const capMet = totalCap >= capacityTarget();
+    const ggeMet = ggeNet   <= ggeTarget();
+    let budgetMet;
+    if (currentConfig.budgetByYear) {
+      budgetMet = currentConfig.years.every(
+        yr => getYearSpend(yr) <= currentConfig.budgetByYear[yr]
+      );
+    } else {
+      budgetMet = totalSpent <= currentConfig.budgetM;
+    }
 
-    updateGoalStatus("goal-cap-status",    capMet);
-    updateGoalStatus("goal-gge-status",    ggeMet);
-    updateGoalStatus("goal-budget-status", budgetMet);
-
-    // Budget warning
-    headerBudgetRemaining.parentElement.classList.toggle("over-budget", totalSpent > currentConfig.budgetM);
+    // Budget warning (global budget levels only)
+    if (!currentConfig.budgetByYear) {
+      headerBudgetRemaining.parentElement.classList.toggle("over-budget", !budgetMet);
+    }
 
     // Check level completion
     checkLevelCompletion(capMet, ggeMet, budgetMet);
 
-    return { totalCap, totalGge, ggeNet };
+    return { totalCap, totalGge, ggeNet, capMet, ggeMet, budgetMet };
   }
+
+  
 
   function updateGoalStatus(id, isMet) {
     const el = document.getElementById(id);
@@ -472,6 +544,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Level completion
   // ============================================================
   function checkLevelCompletion(capMet, ggeMet, budgetMet) {
+    
     if (!capMet || !ggeMet || !budgetMet) return;
     if (levelCompleted[currentLevel]) return;
     levelCompleted[currentLevel] = true;
@@ -563,53 +636,90 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Stepper buttons (event delegation)
   // ============================================================
   document.addEventListener('click', e => {
-  const stepBtn = e.target.closest('.step');
-  if (!stepBtn) return;
-  const row = stepBtn.closest('.energy-row');
-  if (!row) return;
-  const type = row.dataset.type;
-  const source = getSource(type);
+    const stepBtn = e.target.closest('.step');
+    if (!stepBtn) return;
+    const row = stepBtn.closest('.energy-row');
+    if (!row) return;
+    const type = row.dataset.type;
+    const source = getSource(type);
 
-  if (stepBtn.classList.contains('up')) {
-    unitState[type] = (unitState[type] || 0) + 1;
-  }
+    if (stepBtn.classList.contains('up')) {
+      unitState[type] = (unitState[type] || 0) + 1;
 
-  if (stepBtn.classList.contains('down')) {
-  const current = unitState[type] || 0;
-  const currentCap = source.baseCap + current * source.unitCap;
-  if (currentCap < 0) return; // already fully divested, do nothing
-  const nextCap = source.baseCap + (current - 1) * source.unitCap;
-  if (nextCap < 0) {
-    unitState[type] = Math.ceil(-source.baseCap / source.unitCap);
-  } else {
-    unitState[type] = current - 1;
-  }
-}
+      // ---- NEW ----
+      if (currentConfig.budgetByYear) {
+        const yr = currentYear();
+        yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
+      }
+      // ---- END NEW ----
+    }
 
+    if (stepBtn.classList.contains('down')) {
+      const current = unitState[type] || 0;
+      const currentCap = source.baseCap + current * source.unitCap;
+      if (currentCap < 0) return;
+      const nextCap = source.baseCap + (current - 1) * source.unitCap;
+      if (nextCap < 0) {
+        unitState[type] = Math.ceil(-source.baseCap / source.unitCap);
+      } else {
+        unitState[type] = current - 1;
+      }
 
+      // ---- NEW ----
+      if (currentConfig.budgetByYear) {
+        const yr = currentYear();
+        const refund = source.construct * 100 * DIVESTMENT_REFUND_RATE;
+        yearSpend[yr].units = Math.max(0, (yearSpend[yr].units || 0) - refund);
+      }
+      // ---- END NEW ----
+    }
 
-  recomputeAll(); // recomputeTotals() handles ALL budget calculation
-});
+    recomputeAll();
+  });
+
 
 
 
   // ============================================================
   //  Investment checkbox changes
   // ============================================================
-  document.addEventListener("change", e => {
-    if (e.target.type === "checkbox" && e.target.closest("#investment-list")) {
+  document.addEventListener('change', e => {
+    if (e.target.type === 'checkbox' && e.target.closest('#investment-list')) {
+
+      // ---- NEW ----
+      if (currentConfig.budgetByYear) {
+        const yr = currentYear();
+        const cost = num(e.target.dataset.cost, 0);
+        yearSpend[yr].investments = yearSpend[yr].investments || 0;
+        if (e.target.checked) {
+          yearSpend[yr].investments += cost;
+        } else {
+          yearSpend[yr].investments = Math.max(0, yearSpend[yr].investments - cost);
+        }
+      }
+      // ---- END NEW ----
+
       recomputeAll();
     }
   });
 
+
   // ============================================================
   //  Recompute everything
   // ============================================================
-  function recomputeAll() {
-    recomputeRows();
-    const totals = recomputeTotals();
-    updateCharts(totals);
-  }
+function recomputeAll() {
+  recomputeRows();
+  const totals = recomputeTotals();
+  // Render goals with live statuses baked in
+  renderGoals(totals.capMet, totals.ggeMet, totals.budgetMet);
+  // Now the DOM elements exist — update the live value spans
+  setText("goal-cap-current",      totals.totalCap.toFixed(2));
+  setText("goal-gge-current",      totals.ggeNet.toFixed(2));
+  setText("goal-budget-spent",     (totals.totalSpent ?? 0).toFixed(0));
+  setText("goal-budget-remaining", (totals.totalRemaining ?? 0).toFixed(0));
+  updateCharts(totals);
+}
+
 
   // ============================================================
   //  Charts
