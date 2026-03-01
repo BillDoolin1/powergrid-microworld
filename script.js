@@ -2,7 +2,6 @@
 //  Power Grid Microworld — script.js
 // ============================================================
 
-// ---- Energy source definitions (shared across all levels) ----
 const ENERGY_SOURCES = [
   { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 1.0, operating: 110, leadTime: 3 },
   { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 1.2, operating:  70, leadTime: 2 },
@@ -10,9 +9,8 @@ const ENERGY_SOURCES = [
   { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 1 },
   { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 5 },
   { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 3.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
-  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 2  },
+  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 2 },
 ];
-
 
 const DIVESTMENT_REFUND_RATE = 0.25;
 
@@ -25,7 +23,7 @@ const LEVELS = {
     years: [2026],
     chartYears: ["", "", 2026, "", ""],
     startingMix: {},
-    demandByYear: { "": 50, "": 50, 2026: 50, "": 50, "": 50 },
+    demandByYear: {"":50, 2026: 50, "":50 },
     useTimeLag: false,
     investments: [
       { id: "solar-grant",  label: "Home Solar Panel Grant", costM:  75, ggeReduction: 2.0 },
@@ -41,6 +39,7 @@ const LEVELS = {
     ggeTargetByYear: { 2027: 25, 2028: 23, 2029: 22, 2030: 20 },
     demandByYear:    { 2027: 34, 2028: 37, 2029: 39, 2030: 41 },
     useTimeLag: true,
+    lockForward: false,
     investments: [
       { id: "heat-pump",    label: "Heat Pump Grant",         costM: 100, ggeReduction: 3.5 },
       { id: "retrofitting", label: "Retrofitting Allowance", costM: 200, ggeReduction: 5.0 },
@@ -48,13 +47,21 @@ const LEVELS = {
     ],
   },
   3: {
-    name: "2050 Long-Term Challenge",
-    budgetM: 1000,
-    years: [2030, 2040, 2050],
+    name: "2045 Long-Term Challenge",
+    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200 },
+    years: [2030, 2035, 2040, 2045],
     startingMix: {},
-    ggeTargetByYear: { 2030: 20, 2040: 14, 2050: 9  },
-    demandByYear:    { 2030: 41, 2040: 47, 2050: 54 },
+    goalYears: [2035, 2040, 2045],
+    // Which planning years count toward each goal year's budget check
+    goalBudgetYears: {
+      2035: [2030, 2035],
+      2040: [2040],
+      2045: [2045],
+    },
+    ggeTargetByYear: { 2030: 27, 2035: 18, 2040: 14, 2045: 9 },
+    demandByYear:    { 2030: 41, 2035: 44, 2040: 47, 2045: 51 },
     useTimeLag: true,
+    lockForward: true,
     investments: [
       { id: "retrofitting", label: "Retrofitting Allowance", costM: 200, ggeReduction: 5.0 },
       { id: "carbon-tax",   label: "Carbon Tax",              costM:  50, ggeReduction: 6.0 },
@@ -117,13 +124,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let timerInterval    = null;
   let gamePaused       = false;
   let yearSpend        = {};
+  let lockedUpToIndex  = -1;
+  let activeGoalTab    = 0;
 
-  // Level 1: { oil: 2 }
-  // Level 2+: { oil: { 2027: 1, 2028: 2 } }
-  let unitState = {};
-
-  // Tracks which year each investment checkbox was committed in
-  // investmentYear[invId] = year it was checked
+  let unitState      = {};
   let investmentYear = {};
 
   let charts = { demand: null, fuel: null, gge: null };
@@ -167,8 +171,39 @@ document.addEventListener("DOMContentLoaded", () => {
     return (yearSpend[yr].units || 0) + (yearSpend[yr].investments || 0);
   }
 
-  // ---- Time lag helpers ----
+  function isYearLocked(yearIndex) {
+    return currentConfig.lockForward && yearIndex <= lockedUpToIndex;
+  }
 
+  // ---- GGE reduction from checked investments ----
+  function getTotalGgeReduction() {
+    return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
+      .filter(cb => cb.checked)
+      .reduce((sum, cb) => sum + num(cb.dataset.ggeReduction, 0), 0);
+  }
+
+  // ---- Per-goal-year status helper ----
+  function getGoalYearStatus(gy) {
+    const ggeReduction = getTotalGgeReduction();
+    let cap = 0, gge = 0;
+    ENERGY_SOURCES.forEach(s => {
+      const online = getOnlineUnits(s.type, gy);
+      cap += s.baseCap + online * s.unitCap;
+      gge += s.baseGge + online * s.unitGge;
+    });
+    const ggeNet    = Math.max(0, gge - ggeReduction);
+    const capTarget = currentConfig.demandByYear[gy];
+    const ggeT      = currentConfig.ggeTargetByYear[gy];
+    const budgetYrs = currentConfig.goalBudgetYears
+      ? currentConfig.goalBudgetYears[gy]
+      : currentConfig.years.filter(y => y <= gy);
+    const budgetOk  = budgetYrs.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y]);
+    const capOk     = cap >= capTarget;
+    const ggeOk     = ggeNet <= ggeT;
+    return { cap, ggeNet, capTarget, ggeT, capOk, ggeOk, budgetOk, budgetYrs, allOk: capOk && ggeOk && budgetOk };
+  }
+
+  // ---- Time lag helpers ----
   function getTotalUnits(type) {
     if (!currentConfig.useTimeLag) return unitState[type] || 0;
     const byYear = unitState[type];
@@ -200,26 +235,134 @@ document.addEventListener("DOMContentLoaded", () => {
     const yr = currentYear();
     let pending = 0;
     for (const [commitYr, count] of Object.entries(byYear)) {
-      if (count > 0 && Number(commitYr) + source.leadTime > yr) {
-        pending += count;
-      }
+      if (count > 0 && Number(commitYr) + source.leadTime > yr) pending += count;
     }
     return pending;
   }
 
-
-  // Returns the year with the most recently committed positive units
-  // Used to refund the correct year's budget when cancelling
   function getMostRecentInvestedYear(type) {
     const byYear = unitState[type];
     if (!byYear || typeof byYear !== "object") return null;
     let latestYr = null;
     for (const [yr, count] of Object.entries(byYear)) {
-      if (count > 0) {
-        if (latestYr === null || Number(yr) > latestYr) latestYr = Number(yr);
-      }
+      if (count > 0 && (latestYr === null || Number(yr) > latestYr)) latestYr = Number(yr);
     }
     return latestYr;
+  }
+
+  // ============================================================
+  //  Summary overlay
+  // ============================================================
+  function buildSummaryOverlay() {
+    if (document.getElementById("summary-overlay")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "summary-overlay";
+    overlay.style.cssText = `
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85);
+      z-index:200; align-items:center; justify-content:center;`;
+    overlay.innerHTML = `
+      <div style="background:#1b4332; border-radius:12px; padding:32px;
+                  min-width:340px; max-width:580px; width:90%; color:#fff;">
+        <h2 id="summary-title" style="margin:0 0 6px; font-size:1.3rem; text-align:center;"></h2>
+        <p  id="summary-subtitle" style="margin:0 0 20px; text-align:center; font-size:0.9rem; opacity:0.8;"></p>
+        <div id="summary-body"></div>
+        <div id="summary-actions" style="display:none; margin-top:20px; display:flex; gap:10px;">
+          <button id="summary-reset-btn"
+            style="flex:1; padding:10px; background:#e63946; border:none; border-radius:8px;
+                   color:#fff; font-size:1rem; cursor:pointer;">&#8635; Reset Level</button>
+          <button id="summary-exit-btn"
+            style="flex:1; padding:10px; background:#2d6a4f; border:none; border-radius:8px;
+                   color:#fff; font-size:1rem; cursor:pointer;">&#8592; Exit Menu</button>
+        </div>
+        <button id="summary-close-btn"
+          style="margin-top:12px; width:100%; padding:10px; background:#52b788; border:none;
+                 border-radius:8px; color:#fff; font-size:1rem; cursor:pointer;">Close</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById("summary-close-btn").addEventListener("click", () => {
+      overlay.style.display = "none";
+    });
+    document.getElementById("summary-reset-btn").addEventListener("click", () => {
+      overlay.style.display = "none";
+      levelCompleted[currentLevel] = false;
+      gamePaused = false;
+      loadLevel(currentLevel);
+    });
+    document.getElementById("summary-exit-btn").addEventListener("click", () => {
+      overlay.style.display = "none";
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      levelScreen.style.display          = "none";
+      levelSelectContainer.style.display = "flex";
+      currentLevel = null;
+      refreshLevelButtons();
+      gamePaused = false;
+    });
+  }
+
+  function openSummary(isFinalCommit = false) {
+    const overlay = document.getElementById("summary-overlay");
+    if (!overlay) return;
+
+    const goalYears   = currentConfig.goalYears || [finalYear()];
+    const allGoalsMet = goalYears.every(gy => getGoalYearStatus(gy).allOk);
+
+    // Title / subtitle
+    const titleEl    = document.getElementById("summary-title");
+    const subtitleEl = document.getElementById("summary-subtitle");
+    const actionsEl  = document.getElementById("summary-actions");
+
+    if (isFinalCommit) {
+      if (allGoalsMet) {
+        titleEl.textContent    = "🎉 Congratulations!";
+        subtitleEl.textContent = "You have successfully completed Level 3!";
+      } else {
+        titleEl.textContent    = "Hard Luck — Not Quite There";
+        subtitleEl.textContent = "Some goals were not met. Review below and try again.";
+      }
+      actionsEl.style.display = "flex";
+    } else {
+      titleEl.textContent     = "📊 Progress Summary";
+      subtitleEl.textContent  = "";
+      actionsEl.style.display = "none";
+    }
+
+    // Goal year panels
+    const rows = goalYears.map(gy => {
+      const { cap, ggeNet, capTarget, ggeT, capOk, ggeOk, budgetOk, budgetYrs } = getGoalYearStatus(gy);
+      const tick = v => v
+        ? `<span style="color:#52b788; font-weight:bold;">✓</span>`
+        : `<span style="color:#e63946; font-weight:bold;">✗</span>`;
+
+      const budgetSubRows = budgetYrs.map(y => {
+        const bCap  = currentConfig.budgetByYear[y];
+        const spent = getYearSpend(y);
+        const ok    = spent <= bCap;
+        return `
+          <div style="display:flex; justify-content:space-between; padding-left:14px;
+                      font-size:0.8rem; opacity:0.85; margin-bottom:3px;">
+            <span>${y} — &euro;${spent.toFixed(0)}M / &euro;${bCap}M</span>${tick(ok)}
+          </div>`;
+      }).join("");
+
+      return `
+        <div style="margin-bottom:14px; padding:12px; background:rgba(255,255,255,0.07); border-radius:8px;">
+          <div style="font-weight:bold; margin-bottom:8px; font-size:1rem;">${gy} Goals</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Capacity (${cap.toFixed(1)} / ${capTarget} TWh)</span>${tick(capOk)}
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span>GGE (${ggeNet.toFixed(1)} / ${ggeT} MtCO₂eq)</span>${tick(ggeOk)}
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-weight:600;">Under Budget</span>${tick(budgetOk)}
+          </div>
+          ${budgetSubRows}
+        </div>`;
+    }).join("");
+
+    document.getElementById("summary-body").innerHTML = rows;
+    overlay.style.display = "flex";
   }
 
   // ============================================================
@@ -234,6 +377,8 @@ document.addEventListener("DOMContentLoaded", () => {
     currentYearIndex = 0;
     unitState        = {};
     investmentYear   = {};
+    lockedUpToIndex  = -1;
+    activeGoalTab    = 0;
 
     if (currentConfig.useTimeLag) {
       ENERGY_SOURCES.forEach(s => { unitState[s.type] = {}; });
@@ -243,12 +388,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    let initialGge = 0;
-    let initialCap = 0;
-    ENERGY_SOURCES.forEach(s => {
-      initialGge += s.baseGge;
-      initialCap += s.baseCap;
-    });
+    let initialGge = 0, initialCap = 0;
+    ENERGY_SOURCES.forEach(s => { initialGge += s.baseGge; initialCap += s.baseCap; });
     startingGgeNet = parseFloat(Math.max(0, initialGge).toFixed(2));
     startingSupply = parseFloat(initialCap.toFixed(2));
 
@@ -260,9 +401,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (currentConfig.budgetByYear) {
-      const yr = currentConfig.years[0];
       headerBudgetSpent.textContent     = "0";
-      headerBudgetRemaining.textContent = currentConfig.budgetByYear[yr];
+      headerBudgetRemaining.textContent = currentConfig.budgetByYear[currentConfig.years[0]];
     } else {
       headerBudgetSpent.textContent     = "0";
       headerBudgetRemaining.textContent = currentConfig.budgetM;
@@ -272,10 +412,30 @@ document.addEventListener("DOMContentLoaded", () => {
       yearControls.style.display   = "flex";
       currentYearLabel.textContent = currentYear();
       prevYearBtn.disabled         = true;
-      nextYearBtn.disabled         = false;
-      nextYearBtn.textContent      = "Next Year \u25B6";
+      nextYearBtn.textContent      = currentConfig.lockForward
+        ? "Commit & Advance \u25B6"
+        : "Next Year \u25B6";
+      nextYearBtn.disabled = false;
     } else {
       yearControls.style.display = "none";
+    }
+
+    // Summary button
+    if (currentConfig.goalYears) {
+      buildSummaryOverlay();
+      let sumBtn = document.getElementById("summary-btn");
+      if (!sumBtn) {
+        sumBtn           = document.createElement("button");
+        sumBtn.id        = "summary-btn";
+        sumBtn.textContent = "📊 Summary";
+        sumBtn.style.cssText = "margin-left:12px; padding:6px 14px; background:#2d6a4f; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:0.9rem;";
+        sumBtn.addEventListener("click", () => openSummary(false));
+        timerEl.parentElement.appendChild(sumBtn);
+      }
+      sumBtn.style.display = "inline-block";
+    } else {
+      const sumBtn = document.getElementById("summary-btn");
+      if (sumBtn) sumBtn.style.display = "none";
     }
 
     renderGoals();
@@ -293,6 +453,11 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Render: Goals
   // ============================================================
   function renderGoals(capMet = false, ggeMet = false, budgetMet = false) {
+    if (currentConfig.goalYears) {
+      renderGoalsTabs();
+      return;
+    }
+
     goalsTitle.textContent = `Level ${currentLevel} Goals (by ${finalYear()})`;
 
     let budgetGoalHtml;
@@ -348,6 +513,71 @@ document.addEventListener("DOMContentLoaded", () => {
       ${budgetGoalHtml}`;
   }
 
+  // ---- Level 3 tabbed goals ----
+  function renderGoalsTabs() {
+    const goalYears = currentConfig.goalYears;
+    goalsTitle.textContent = `Level ${currentLevel} Goals`;
+
+    const tabButtons = goalYears.map((gy, i) => {
+      const { allOk } = getGoalYearStatus(gy);
+      const isActive  = i === activeGoalTab;
+      return `
+        <button class="goal-tab-btn ${isActive ? 'active' : ''}" data-tab="${i}"
+          style="flex:1; padding:6px 4px; border:none; border-radius:6px 6px 0 0; cursor:pointer;
+                 background:${isActive ? '#2d6a4f' : '#1b4332'}; color:#fff; font-size:0.85rem;
+                 border-bottom:${isActive ? '2px solid #52b788' : '2px solid transparent'};">
+          ${gy} ${allOk ? '✓' : ''}
+        </button>`;
+    }).join("");
+
+    const gy = goalYears[activeGoalTab];
+    const { cap, ggeNet, capTarget, ggeT, capOk, ggeOk, budgetOk, budgetYrs } = getGoalYearStatus(gy);
+
+    const budgetSubRows = budgetYrs.map(yr => {
+      const bCap  = currentConfig.budgetByYear[yr];
+      const spent = getYearSpend(yr);
+      const ok    = spent <= bCap;
+      return `
+        <div class="goal" style="padding-left:16px; font-size:0.82rem; opacity:0.9;">
+          <span>${yr}</span>
+          <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${bCap}M</span>
+          <span class="goal-status ${ok ? 'complete' : 'incomplete'}">${ok ? '&#10003;' : '&#10007;'}</span>
+        </div>`;
+    }).join("");
+
+    goalsList.innerHTML = `
+      <div style="display:flex; gap:4px; margin-bottom:8px;">${tabButtons}</div>
+      <div class="goal" id="goal-capacity">
+        <span>Match Demand by ${gy}</span>
+        <span class="goal-progress">
+          <span id="goal-cap-current">${cap.toFixed(2)}</span> /
+          <span id="goal-cap-target">${capTarget}</span> TWh
+        </span>
+        <span class="goal-status ${capOk ? 'complete' : 'incomplete'}" id="goal-cap-status">${capOk ? '&#10003;' : '&#10007;'}</span>
+      </div>
+      <div class="goal" id="goal-gge">
+        <span>Reduce GGE by ${gy}</span>
+        <span class="goal-progress">
+          <span id="goal-gge-current">${ggeNet.toFixed(2)}</span> /
+          <span id="goal-gge-target">${ggeT}</span> MtCO&#8322;eq
+        </span>
+        <span class="goal-status ${ggeOk ? 'complete' : 'incomplete'}" id="goal-gge-status">${ggeOk ? '&#10003;' : '&#10007;'}</span>
+      </div>
+      <div class="goal" id="goal-budget">
+        <span>Under Budget</span>
+        <span class="goal-progress"></span>
+        <span class="goal-status ${budgetOk ? 'complete' : 'incomplete'}" id="goal-budget-status">${budgetOk ? '&#10003;' : '&#10007;'}</span>
+      </div>
+      ${budgetSubRows}`;
+
+    goalsList.querySelectorAll(".goal-tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeGoalTab = Number(btn.dataset.tab);
+        renderGoalsTabs();
+      });
+    });
+  }
+
   // ============================================================
   //  Render: Energy Table
   // ============================================================
@@ -398,7 +628,9 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Recompute: rows
   // ============================================================
   function recomputeRows() {
-    const yr = currentYear();
+    const yr     = currentYear();
+    const locked = isYearLocked(currentYearIndex);
+
     ENERGY_SOURCES.forEach(s => {
       const onlineUnits  = getOnlineUnits(s.type, yr);
       const totalUnits   = getTotalUnits(s.type);
@@ -418,7 +650,6 @@ document.addEventListener("DOMContentLoaded", () => {
         unitsEl.textContent = String(totalUnits);
         unitsEl.classList.toggle("units-divested", totalUnits < 0);
 
-        // Rebuild pending label based on global pending (all years, not just current)
         const existingLabel = unitsEl.parentElement.querySelector(".pending-label");
         if (existingLabel) existingLabel.remove();
         if (pendingUnits > 0) {
@@ -431,7 +662,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      const upBtn   = document.querySelector(`.energy-row[data-type="${s.type}"] .step.up`);
       const downBtn = document.querySelector(`.energy-row[data-type="${s.type}"] .step.down`);
+
+      if (upBtn) {
+        upBtn.disabled      = locked;
+        upBtn.style.opacity = locked ? "0.35" : "";
+        upBtn.style.cursor  = locked ? "not-allowed" : "";
+      }
+
       if (downBtn) {
         const capAtNext = s.baseCap + (totalUnits - 1) * s.unitCap;
         const atFloor   = capAtNext < 0;
@@ -441,39 +680,42 @@ document.addEventListener("DOMContentLoaded", () => {
         downBtn.style.cursor  = atFloor ? "not-allowed" : "";
       }
     });
+
+    document.querySelectorAll("#investment-list input[type='checkbox']").forEach(cb => {
+      const invId       = cb.dataset.invId;
+      const committedYr = investmentYear[invId];
+      const committedIdx = committedYr ? currentConfig.years.indexOf(Number(committedYr)) : -1;
+      if (locked && !cb.checked) cb.disabled = true;
+      else if (committedIdx >= 0 && isYearLocked(committedIdx)) cb.disabled = true;
+      else cb.disabled = false;
+    });
   }
 
   // ============================================================
-  //  Recompute: totals, goals, budget
+  //  Recompute: totals
   // ============================================================
   function recomputeTotals() {
     const yr = currentYear();
 
-    let totalCap = 0;
-    let totalGge = 0;
+    let totalCap = 0, totalGge = 0;
     ENERGY_SOURCES.forEach(s => {
-      const onlineUnits = getOnlineUnits(s.type, yr);
-      totalCap += s.baseCap + onlineUnits * s.unitCap;
-      totalGge += s.baseGge + onlineUnits * s.unitGge;
+      const online = getOnlineUnits(s.type, yr);
+      totalCap += s.baseCap + online * s.unitCap;
+      totalGge += s.baseGge + online * s.unitGge;
     });
 
     const finalYr = finalYear();
-    let finalCap = 0;
-    let finalGge = 0;
+    let finalCap = 0, finalGge = 0;
     ENERGY_SOURCES.forEach(s => {
-      const onlineAtFinal = getOnlineUnits(s.type, finalYr);
-      finalCap += s.baseCap + onlineAtFinal * s.unitCap;
-      finalGge += s.baseGge + onlineAtFinal * s.unitGge;
+      const online = getOnlineUnits(s.type, finalYr);
+      finalCap += s.baseCap + online * s.unitCap;
+      finalGge += s.baseGge + online * s.unitGge;
     });
 
-    const invCheckboxes = [...document.querySelectorAll("#investment-list input[type='checkbox']")];
-    let invSpendM    = 0;
-    let ggeReduction = 0;
-    invCheckboxes.forEach(cb => {
-      if (!cb.checked) return;
-      invSpendM    += num(cb.dataset.cost, 0);
-      ggeReduction += num(cb.dataset.ggeReduction, 0);
-    });
+    const ggeReduction = getTotalGgeReduction();
+    let invSpendM = [...document.querySelectorAll("#investment-list input[type='checkbox']")]
+      .filter(cb => cb.checked)
+      .reduce((sum, cb) => sum + num(cb.dataset.cost, 0), 0);
 
     const ggeNet      = Math.max(0, totalGge - ggeReduction);
     const finalGgeNet = Math.max(0, finalGge - ggeReduction);
@@ -506,21 +748,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     ENERGY_SOURCES.forEach(s => {
-      const onlineUnits = getOnlineUnits(s.type, yr);
-      const cap = s.baseCap + onlineUnits * s.unitCap;
-      const pct = totalCap > 0 ? ((cap / totalCap) * 100).toFixed(1) : "0.0";
-      const el  = document.getElementById(`pct-${s.type}`);
+      const online = getOnlineUnits(s.type, yr);
+      const cap    = s.baseCap + online * s.unitCap;
+      const pct    = totalCap > 0 ? ((cap / totalCap) * 100).toFixed(1) : "0.0";
+      const el     = document.getElementById(`pct-${s.type}`);
       if (el) el.textContent = pct;
     });
 
-    const capMet = finalCap >= capacityTarget();
-    const ggeMet = finalGgeNet <= ggeTarget();
-    let budgetMet;
-    if (currentConfig.budgetByYear) {
-      budgetMet = currentConfig.years.every(
-        y => getYearSpend(y) <= currentConfig.budgetByYear[y]
-      );
+    let capMet, ggeMet, budgetMet;
+    if (currentConfig.goalYears) {
+      capMet    = currentConfig.goalYears.every(gy => getGoalYearStatus(gy).capOk);
+      ggeMet    = currentConfig.goalYears.every(gy => getGoalYearStatus(gy).ggeOk);
+      budgetMet = currentConfig.goalYears.every(gy => getGoalYearStatus(gy).budgetOk);
+    } else if (currentConfig.budgetByYear) {
+      capMet    = finalCap >= capacityTarget();
+      ggeMet    = finalGgeNet <= ggeTarget();
+      budgetMet = currentConfig.years.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y]);
     } else {
+      capMet    = finalCap >= capacityTarget();
+      ggeMet    = finalGgeNet <= ggeTarget();
       budgetMet = totalSpent <= currentConfig.budgetM;
     }
 
@@ -528,7 +774,11 @@ document.addEventListener("DOMContentLoaded", () => {
       headerBudgetRemaining.parentElement.classList.toggle("over-budget", !budgetMet);
     }
 
-    checkLevelCompletion(capMet, ggeMet, budgetMet);
+    // Level 3 completion is triggered only on final commit, not automatically
+    if (!currentConfig.goalYears) {
+      checkLevelCompletion(capMet, ggeMet, budgetMet);
+    }
+
     return { totalCap, totalGge, ggeNet, finalCap, finalGgeNet, capMet, ggeMet, budgetMet, totalSpent, totalRemaining };
   }
 
@@ -569,6 +819,28 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshLevelButtons();
   }
 
+  // Level 3 final commit handler
+  function triggerFinalCommit() {
+    gamePaused = true;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+    const goalYears   = currentConfig.goalYears;
+    const allGoalsMet = goalYears.every(gy => getGoalYearStatus(gy).allOk);
+
+    if (allGoalsMet && !levelCompleted[currentLevel]) {
+      levelCompleted[currentLevel]     = true;
+      levelEverCompleted[currentLevel] = true;
+      const finishTime = gameTimer;
+      if (bestTimes[currentLevel] === null || finishTime < bestTimes[currentLevel]) {
+        bestTimes[currentLevel] = finishTime;
+      }
+      unlockLevel(currentLevel + 1);
+      refreshLevelButtons();
+    }
+
+    openSummary(true);
+  }
+
   function unlockLevel(levelNum) {
     const btn = document.querySelector(`.level-btn[data-level="${levelNum}"]`);
     if (!btn) return;
@@ -595,12 +867,34 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Year navigation
   // ============================================================
   function advanceYear(direction) {
+    if (currentConfig.lockForward && direction < 0) return;
+
+    // Level 3: final year commit → trigger final summary
+    if (currentConfig.lockForward && direction > 0) {
+      const isLastYear = currentYearIndex === currentConfig.years.length - 1;
+      if (isLastYear) {
+        triggerFinalCommit();
+        return;
+      }
+      lockedUpToIndex = currentYearIndex;
+    }
+
     const newIndex = currentYearIndex + direction;
     if (newIndex < 0 || newIndex >= currentConfig.years.length) return;
     currentYearIndex             = newIndex;
     currentYearLabel.textContent = currentYear();
-    prevYearBtn.disabled         = currentYearIndex === 0;
-    nextYearBtn.disabled         = currentYearIndex === currentConfig.years.length - 1;
+    prevYearBtn.disabled         = currentConfig.lockForward || currentYearIndex === 0;
+
+    // Update button text for last year
+    if (currentConfig.lockForward && currentYearIndex === currentConfig.years.length - 1) {
+      nextYearBtn.textContent = "Final Commit \u2713";
+    } else {
+      nextYearBtn.textContent = currentConfig.lockForward
+        ? "Commit & Advance \u25B6"
+        : "Next Year \u25B6";
+    }
+    nextYearBtn.disabled = !currentConfig.lockForward && currentYearIndex === currentConfig.years.length - 1;
+
     recomputeAll();
   }
 
@@ -610,88 +904,80 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Stepper buttons
   // ============================================================
-document.addEventListener("click", e => {
-  const stepBtn = e.target.closest(".step");
-  if (!stepBtn) return;
-  const row = stepBtn.closest(".energy-row");
-  if (!row) return;
-  const type   = row.dataset.type;
-  const source = getSource(type);
+  document.addEventListener("click", e => {
+    const stepBtn = e.target.closest(".step");
+    if (!stepBtn) return;
+    const row = stepBtn.closest(".energy-row");
+    if (!row) return;
+    const type   = row.dataset.type;
+    const source = getSource(type);
 
-  if (!currentConfig.useTimeLag) {
-    // ---- Level 1: flat, no time lag ----
-    if (stepBtn.classList.contains("up")) {
-      unitState[type] = (unitState[type] || 0) + 1;
-    }
-    if (stepBtn.classList.contains("down")) {
-      const current    = unitState[type] || 0;
-      const currentCap = source.baseCap + current * source.unitCap;
-      if (currentCap <= 0) return;
-      const nextCap   = source.baseCap + (current - 1) * source.unitCap;
-      unitState[type] = nextCap < 0
-        ? Math.ceil(-source.baseCap / source.unitCap)
-        : current - 1;
-    }
-
-  } else {
-    // ---- Level 2+: time lag, per-year unitState ----
-    const yr     = currentYear();
-    const byYear = unitState[type];
-    const thisYr = byYear[yr] || 0;
-    const total  = getTotalUnits(type);
-
-    if (stepBtn.classList.contains("up")) {
-      byYear[yr] = thisYr + 1;
-      if (currentConfig.budgetByYear) {
-        if (total < 0) {
-          // Undoing a base divestment — reverse the 0.25 refund
-          yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100 * DIVESTMENT_REFUND_RATE);
-        } else {
-          // Normal new investment
-          yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
-        }
+    if (!currentConfig.useTimeLag) {
+      if (stepBtn.classList.contains("up")) {
+        unitState[type] = (unitState[type] || 0) + 1;
       }
-      if (byYear[yr] === 0) delete byYear[yr];
-    }
+      if (stepBtn.classList.contains("down")) {
+        const current    = unitState[type] || 0;
+        const currentCap = source.baseCap + current * source.unitCap;
+        if (currentCap <= 0) return;
+        const nextCap   = source.baseCap + (current - 1) * source.unitCap;
+        unitState[type] = nextCap < 0
+          ? Math.ceil(-source.baseCap / source.unitCap)
+          : current - 1;
+      }
+    } else {
+      const yr     = currentYear();
+      const byYear = unitState[type];
+      const thisYr = byYear[yr] || 0;
+      const total  = getTotalUnits(type);
 
-    if (stepBtn.classList.contains("down")) {
-      // Hard floor: capacity cannot go below zero
-      const capAtNext = source.baseCap + (total - 1) * source.unitCap;
-      if (capAtNext < 0) return;
+      if (stepBtn.classList.contains("up")) {
+        if (isYearLocked(currentYearIndex)) return;
+        byYear[yr] = thisYr + 1;
+        if (currentConfig.budgetByYear) {
+          if (total < 0) {
+            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+          } else {
+            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
+          }
+        }
+        if (byYear[yr] === 0) delete byYear[yr];
+      }
 
-      if (currentConfig.budgetByYear) {
-        if (total > 0) {
-          // Refund AND remove unit from the most recent invested year
-          const refundYr = getMostRecentInvestedYear(type);
-          if (refundYr !== null) {
-            if (!yearSpend[refundYr]) yearSpend[refundYr] = { units: 0, investments: 0 };
-            yearSpend[refundYr].units = (yearSpend[refundYr].units || 0) - (source.construct * 100);
-            // Remove the unit from that year, not the current year
-            byYear[refundYr] = (byYear[refundYr] || 0) - 1;
-            if (byYear[refundYr] === 0) delete byYear[refundYr];
+      if (stepBtn.classList.contains("down")) {
+        const capAtNext = source.baseCap + (total - 1) * source.unitCap;
+        if (capAtNext < 0) return;
+
+        if (currentConfig.budgetByYear) {
+          if (total > 0) {
+            const refundYr = getMostRecentInvestedYear(type);
+            if (refundYr !== null) {
+              if (!yearSpend[refundYr]) yearSpend[refundYr] = { units: 0, investments: 0 };
+              yearSpend[refundYr].units = (yearSpend[refundYr].units || 0) - (source.construct * 100);
+              byYear[refundYr] = (byYear[refundYr] || 0) - 1;
+              if (byYear[refundYr] === 0) delete byYear[refundYr];
+            }
+          } else {
+            yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+            byYear[yr] = thisYr - 1;
+            if (byYear[yr] === 0) delete byYear[yr];
           }
         } else {
-          // Divesting below 0 — 0.25 rate refund to current year
-          yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100 * DIVESTMENT_REFUND_RATE);
-          byYear[yr] = thisYr - 1;
-          if (byYear[yr] === 0) delete byYear[yr];
-        }
-      } else {
-        // No budget tracking — still remove from most recent invested year if possible
-        const refundYr = getMostRecentInvestedYear(type);
-        if (refundYr !== null) {
-          byYear[refundYr] = (byYear[refundYr] || 0) - 1;
-          if (byYear[refundYr] === 0) delete byYear[refundYr];
-        } else {
-          byYear[yr] = thisYr - 1;
-          if (byYear[yr] === 0) delete byYear[yr];
+          const refundYr = getMostRecentInvestedYear(type);
+          if (refundYr !== null) {
+            byYear[refundYr] = (byYear[refundYr] || 0) - 1;
+            if (byYear[refundYr] === 0) delete byYear[refundYr];
+          } else {
+            byYear[yr] = thisYr - 1;
+            if (byYear[yr] === 0) delete byYear[yr];
+          }
         }
       }
     }
-  }
 
-  recomputeAll();
-});
+    recomputeAll();
+  });
+
   // ============================================================
   //  Investment checkbox changes
   // ============================================================
@@ -703,16 +989,13 @@ document.addEventListener("click", e => {
       if (currentConfig.budgetByYear) {
         const yr = currentYear();
         if (e.target.checked) {
-          // Record which year this investment was made
           investmentYear[invId] = yr;
           if (!yearSpend[yr]) yearSpend[yr] = { units: 0, investments: 0 };
           yearSpend[yr].investments = (yearSpend[yr].investments || 0) + cost;
         } else {
-          // Refund to the year it was originally committed, not the current year
           const originalYr = investmentYear[invId] ?? yr;
           if (!yearSpend[originalYr]) yearSpend[originalYr] = { units: 0, investments: 0 };
           yearSpend[originalYr].investments = (yearSpend[originalYr].investments || 0) - cost;
-          // Clamp to 0 to prevent negative investment spend in that year
           if (yearSpend[originalYr].investments < 0) yearSpend[originalYr].investments = 0;
           delete investmentYear[invId];
         }
@@ -729,10 +1012,12 @@ document.addEventListener("click", e => {
     recomputeRows();
     const totals = recomputeTotals();
     renderGoals(totals.capMet, totals.ggeMet, totals.budgetMet);
-    setText("goal-cap-current",      totals.finalCap.toFixed(2));
-    setText("goal-gge-current",      totals.finalGgeNet.toFixed(2));
-    setText("goal-budget-spent",     (totals.totalSpent     ?? 0).toFixed(0));
-    setText("goal-budget-remaining", (totals.totalRemaining ?? 0).toFixed(0));
+    if (!currentConfig.goalYears) {
+      setText("goal-cap-current",      totals.finalCap.toFixed(2));
+      setText("goal-gge-current",      totals.finalGgeNet.toFixed(2));
+      setText("goal-budget-spent",     (totals.totalSpent     ?? 0).toFixed(0));
+      setText("goal-budget-remaining", (totals.totalRemaining ?? 0).toFixed(0));
+    }
     updateCharts(totals);
   }
 
