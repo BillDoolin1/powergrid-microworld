@@ -48,7 +48,7 @@ const LEVELS = {
   },
   3: {
     name: "2050 Long-Term Challenge",
-    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200, 2050: 1300 },
+    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200, 2050: 200 },
     years: [2030, 2035, 2040, 2045, 2050],
     startingMix: {},
     goalYears: [2035, 2040, 2050],
@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const yr        = currentYear();
   const goalYears = currentConfig.goalYears;
   // Find the index of the first goal year >= current planning year
-  const idx = goalYears.findIndex(gy => gy >= yr);
+  const idx = goalYears.findIndex(gy => gy > yr);
   activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
 }
 
