@@ -221,7 +221,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let yearSpend        = {};
   let lockedUpToIndex  = -1;
   let activeGoalTab    = 0;
-  let chartSnapshots = {}; // { year: { supply, gge } }
+  let chartSnapshots   = {}; // { year: { supply, gge } }
+  let frozenGoalStatus = {}; // { goalYear: snapshot } — frozen at commit time, never retroactively updated
 
   // Live baseCap/baseGge per source — updated on each commit merge
   // Keyed by source type: { oil: { baseCap: X, baseGge: Y }, ... }
@@ -322,6 +323,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getGoalYearStatus(gy) {
+    // If we've already committed past this goal year, return the frozen snapshot
+    if (frozenGoalStatus[gy]) return frozenGoalStatus[gy];
+
     const ggeReduction = getTotalGgeReduction();
     let cap = 0, gge = 0;
     ENERGY_SOURCES.forEach(s => {
@@ -387,15 +391,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return latestYr;
   }
-  function syncGoalTab() {
-  if (!currentConfig.goalYears) return;
-  const yr        = currentYear();
-  const goalYears = currentConfig.goalYears;
-  // Find the index of the first goal year >= current planning year
-  const idx = goalYears.findIndex(gy => gy > yr);
-  activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
-}
 
+  function syncGoalTab() {
+    if (!currentConfig.goalYears) return;
+    const yr        = currentYear();
+    const goalYears = currentConfig.goalYears;
+    const idx = goalYears.findIndex(gy => gy > yr);
+    activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
+  }
 
   // ============================================================
   //  Data merge on commit
@@ -562,7 +565,8 @@ document.addEventListener("DOMContentLoaded", () => {
     investmentYear   = {};
     lockedUpToIndex  = -1;
     activeGoalTab    = 0;
-    chartSnapshots = {};
+    chartSnapshots   = {};
+    frozenGoalStatus = {};
 
     // Initialise mergedBase from ENERGY_SOURCES defaults
     mergedBase = {};
@@ -1032,6 +1036,13 @@ document.addEventListener("DOMContentLoaded", () => {
     gamePaused = true;
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 
+    // Freeze any goal years not yet frozen (including the final goal year)
+    if (currentConfig.goalYears) {
+      currentConfig.goalYears.forEach(gy => {
+        if (!frozenGoalStatus[gy]) frozenGoalStatus[gy] = getGoalYearStatus(gy);
+      });
+    }
+
     const goalYears   = currentConfig.goalYears;
     const allGoalsMet = goalYears.every(gy => getGoalYearStatus(gy).allOk);
 
@@ -1081,6 +1092,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const isLastYear = currentYearIndex === currentConfig.years.length - 1;
       if (isLastYear) { triggerFinalCommit(); return; }
 
+      // Freeze the status of any goal years that fall on or before the year we're leaving
+      const leavingYear = currentConfig.years[currentYearIndex];
+      if (currentConfig.goalYears) {
+        currentConfig.goalYears.forEach(gy => {
+          if (gy <= leavingYear && !frozenGoalStatus[gy]) {
+            frozenGoalStatus[gy] = getGoalYearStatus(gy);
+          }
+        });
+      }
+
       // Lock current year, merge online units into base for the next year
       lockedUpToIndex  = currentYearIndex;
       const nextYear   = currentConfig.years[currentYearIndex + 1];
@@ -1102,7 +1123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     nextYearBtn.disabled = !currentConfig.lockForward && currentYearIndex === currentConfig.years.length - 1;
 
-    syncGoalTab();       // ← add this line
+    syncGoalTab();
     renderEnergyTable();
     recomputeAll();
   }
@@ -1168,7 +1189,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (byYear[refundYr] === 0) delete byYear[refundYr];
             }
           } else {
-            // total === 0: divesting merged/base capacity at 0.25 rate
+            // total === 0: divesting merged/base capacity at refund rate
             yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * DIVESTMENT_REFUND_RATE);
             byYear[yr] = thisYr - 1;
             if (byYear[yr] === 0) delete byYear[yr];
@@ -1237,7 +1258,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     updateCharts(totals);
-  
   }
 
   // ============================================================
@@ -1315,9 +1335,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const numLabels = yearsForCharts.length;
 
     if (currentConfig.goalYears) {
-      // Level 3: compute real cap/GGE at each chart year from actual online units
+      // Level 3: for each chart year, use the frozen snapshot if we've committed past it,
+      // otherwise compute live from current online units.
+      const ggeReduction = getTotalGgeReduction();
+
       const supplyData = yearsForCharts.map(y => {
         if (currentConfig.demandByYear[y] === undefined) return null;
+        // Use frozen snapshot if available (year already committed past)
+        if (frozenGoalStatus[y]) return parseFloat(frozenGoalStatus[y].cap.toFixed(2));
         let cap = 0;
         ENERGY_SOURCES.forEach(s => {
           cap += getBaseCap(s.type) + getOnlineUnits(s.type, y) * s.unitCap;
@@ -1325,9 +1350,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return parseFloat(cap.toFixed(2));
       });
 
-      const ggeReduction = getTotalGgeReduction();
       const ggeData = yearsForCharts.map(y => {
         if (currentConfig.demandByYear[y] === undefined) return null;
+        // Use frozen snapshot if available
+        if (frozenGoalStatus[y]) return parseFloat(frozenGoalStatus[y].ggeNet.toFixed(2));
         let gge = 0;
         ENERGY_SOURCES.forEach(s => {
           gge += getBaseGge(s.type) + getOnlineUnits(s.type, y) * s.unitGge;
@@ -1335,10 +1361,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return parseFloat(Math.max(0, gge - ggeReduction).toFixed(2));
       });
 
-    charts.demand.data.datasets[0].data = yearsForCharts.map(y =>
-      currentConfig.demandByYear ? getEffectiveDemand(y) : currentConfig.capacityTarget
-    );
-    charts.demand.data.datasets[1].data = supplyData;
+      charts.demand.data.datasets[0].data = yearsForCharts.map(y =>
+        currentConfig.demandByYear ? getEffectiveDemand(y) : currentConfig.capacityTarget
+      );
+      charts.demand.data.datasets[1].data = supplyData;
       charts.gge.data.datasets[0].data    = ggeData;
 
     } else {
@@ -1367,8 +1393,6 @@ document.addEventListener("DOMContentLoaded", () => {
     charts.fuel.update("none");
     charts.gge.update("none");
   }
-
-
 
   // ============================================================
   //  Timer
