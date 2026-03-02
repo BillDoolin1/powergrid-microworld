@@ -747,3 +747,173 @@ button[type="submit"]:hover {
   border: 1px solid rgba(255, 215, 0, 0.5);
   color: #fff0a0;
 }
+/* ============================================================
+   Level Intro Overlay
+   ============================================================ */
+#level-intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#level-intro-overlay.visible {
+  display: flex;
+}
+
+.intro-card {
+  background: linear-gradient(160deg, #183425 0%, #0d1f16 100%);
+  border: 1px solid rgba(82, 183, 136, 0.30);
+  border-radius: 16px;
+  padding: 36px 40px 32px;
+  max-width: 660px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
+  scrollbar-width: thin;
+  scrollbar-color: #52b788 transparent;
+}
+.intro-card::-webkit-scrollbar { width: 5px; }
+.intro-card::-webkit-scrollbar-thumb { background: #52b788; border-radius: 4px; }
+
+/* Badge + heading */
+.intro-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #52b788;
+  background: rgba(82,183,136,0.12);
+  border: 1px solid rgba(82,183,136,0.28);
+  border-radius: 20px;
+  padding: 3px 13px;
+  margin-bottom: 12px;
+}
+
+.intro-card h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 5px;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.intro-tagline {
+  font-size: 0.92rem;
+  color: rgba(255,255,255,0.50);
+  margin: 0 0 26px;
+  font-style: italic;
+}
+
+.intro-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 18px 0;
+}
+
+/* Sections */
+.intro-section { margin-bottom: 16px; }
+
+.intro-section-heading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #52b788;
+  margin-bottom: 6px;
+}
+
+.intro-section p {
+  font-size: 0.875rem;
+  line-height: 1.68;
+  color: rgba(255,255,255,0.80);
+  margin: 0 0 5px;
+}
+.intro-section p:last-child { margin-bottom: 0; }
+
+/* NEW tag */
+.intro-new {
+  display: inline-block;
+  font-size: 0.60rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: #e9c46a;
+  color: #111;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 5px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+/* Mechanic cards grid */
+.intro-mechanics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 6px;
+}
+
+.intro-mech {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 9px;
+  padding: 11px 13px;
+}
+
+.intro-mech-icon { font-size: 1.2rem; margin-bottom: 4px; }
+.intro-mech-label { font-size: 0.78rem; font-weight: 600; color: #fff; margin-bottom: 2px; }
+.intro-mech-desc  { font-size: 0.74rem; color: rgba(255,255,255,0.58); line-height: 1.44; }
+
+/* Checkpoint chips */
+.intro-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.intro-chip {
+  background: rgba(82,183,136,0.14);
+  border: 1px solid rgba(82,183,136,0.35);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.80rem;
+  font-weight: 600;
+  color: #a8d5b5;
+}
+
+/* Warning box */
+.intro-warning {
+  background: rgba(230,57,70,0.11);
+  border: 1px solid rgba(230,57,70,0.32);
+  border-radius: 9px;
+  padding: 11px 15px;
+  margin-top: 8px;
+}
+.intro-warning .intro-section-heading { color: #e6646e; }
+.intro-warning p { color: rgba(255,195,195,0.88) !important; margin: 0 !important; }
+
+/* Start button */
+.intro-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 26px;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #52b788 0%, #2d6a4f 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  box-shadow: 0 4px 18px rgba(82,183,136,0.28);
+}
+.intro-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(82,183,136,0.42);
+}

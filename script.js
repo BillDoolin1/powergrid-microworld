@@ -1,5 +1,5 @@
 // ============================================================
-//  Power Grid Microworld — script.js
+//  Power Grid Microworld - script.js
 // ============================================================
 
 const ENERGY_SOURCES = [
@@ -9,10 +9,10 @@ const ENERGY_SOURCES = [
   //  type        label           baseCap   baseGge   unitCap  unitGge  N   construct  operating  leadTime
   { type: "oil",      label: "Oil",           baseCap:  5.75,  baseGge:  9.500, unitCap: 1.15,  unitGge: 1.9,   construct:  80, operating:  60, leadTime: 3 },  // N=5
   { type: "gas",      label: "Gas",           baseCap: 13.16,  baseGge: 17.504, unitCap: 1.645, unitGge: 2.188, construct: 100, operating:  70, leadTime: 2 },  // N=8
-  { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead — workhorse renewable
-  { type: "solar",    label: "Solar",         baseCap:  1.05,  baseGge:  0.000, unitCap: 0.35,  unitGge: 0.00,  construct:  90, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest — fine-tune tool
-  { type: "offshore", label: "Offshore Wind", baseCap:  2.00,  baseGge:  0.000, unitCap: 2.00,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest — long-term bet
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.80,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow — plan far ahead
+  { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead - workhorse renewable
+  { type: "solar",    label: "Solar",         baseCap:  1.05,  baseGge:  0.000, unitCap: 0.35,  unitGge: 0.00,  construct:  90, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest - fine-tune tool
+  { type: "offshore", label: "Offshore Wind", baseCap:  2.00,  baseGge:  0.000, unitCap: 2.00,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest - long-term bet
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.80,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
   { type: "hydro",    label: "Hydro",         baseCap:  0.72,  baseGge:  0.000, unitCap: 0.72,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
 ];
 
@@ -34,7 +34,7 @@ const LEVELS = {
         id: "solar-grant",
         label: "Home Solar Panel Grant",
         costM: 75,
-        // Rooftop solar offsets household consumption — reduces how much grid supply is needed
+        // Rooftop solar offsets household consumption - reduces how much grid supply is needed
         effect: { demandReduction: 1.5 },
         tooltip: "Subsidises rooftop solar panels, reducing households' reliance on the grid.",
       },
@@ -42,10 +42,10 @@ const LEVELS = {
         id: "heat-pump",
         label: "Heat Pump Grant",
         costM: 100,
-        // Heat pumps are ~3× more efficient than gas boilers — cuts energy demand
+        // Heat pumps are ~3× more efficient than gas boilers - cuts energy demand
         // BUT switching from gas to electric shifts some fossil demand onto the grid
         effect: { demandReduction: 2.0, ggeReduction: 1.5 },
-        tooltip: "Replaces gas boilers with efficient electric heat pumps — cuts heating emissions and overall energy use.",
+        tooltip: "Replaces gas boilers with efficient electric heat pumps - cuts heating emissions and overall energy use.",
       },
       {
         id: "retrofitting",
@@ -72,7 +72,7 @@ const LEVELS = {
         label: "Heat Pump Grant",
         costM: 100,
         effect: { demandReduction: 1.0, ggeReduction: 1.0 },
-        tooltip: "Replaces gas boilers with efficient electric heat pumps — cuts heating emissions and overall energy use.",
+        tooltip: "Replaces gas boilers with efficient electric heat pumps - cuts heating emissions and overall energy use.",
       },
       {
         id: "retrofitting",
@@ -222,9 +222,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let lockedUpToIndex  = -1;
   let activeGoalTab    = 0;
   let chartSnapshots   = {}; // { year: { supply, gge } }
-  let frozenGoalStatus = {}; // { goalYear: snapshot } — frozen at commit time, never retroactively updated
+  let frozenGoalStatus = {}; // { goalYear: snapshot } - frozen at commit time, never retroactively updated
 
-  // Live baseCap/baseGge per source — updated on each commit merge
+  // Live baseCap/baseGge per source - updated on each commit merge
   // Keyed by source type: { oil: { baseCap: X, baseGge: Y }, ... }
   let mergedBase = {};
 
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return ENERGY_SOURCES.find(s => s.type === type);
   }
 
-  // Live base values — use mergedBase if present, else ENERGY_SOURCES defaults
+  // Live base values - use mergedBase if present, else ENERGY_SOURCES defaults
   function getBaseCap(type) {
     return mergedBase[type] ? mergedBase[type].baseCap : getSource(type).baseCap;
   }
@@ -1487,18 +1487,184 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2000);
   });
 
+  // ============================================================
+  //  Level Intro Overlay
+  // ============================================================
+
+  const LEVEL_INTROS = {
+    1: {
+      badge: "Level 1 · Tutorial",
+      title: "Welcome to the Power Grid Microworld",
+      tagline: "",
+      sections: [
+        {
+          heading: "Sandbox Mode",
+          body: `This is a single-year sandbox - there is no time lag and everything you build is available immediately. Take your time to explore and experiment freely.`
+        },
+        {
+          heading: "Your Objective",
+          body: `Manage Ireland's power grid and meet three targets by the end of the year:<br>
+                 &bull; <strong>Capacity (TWh)</strong> - supply must match projected demand.<br>
+                 &bull; <strong>GGE (MtCO₂eq)</strong> - Greenhouse Gas Emissions (GGE) must fall below the limit.
+                 &bull; <strong>Budget (€M)</strong> - stay within the allocated budget (measured in million euros (M)).`
+        },
+        {
+          heading: "The Power Grid Investment Table",
+          body: `Each row is a power source. Use ▲ / ▼ to add or remove units. Adding a unit increases capacity and may increase or decrease GGE depending on the source. Cost is shown per unit in €M.`
+        },
+        {
+          heading: "Divestment",
+          body: `You can press ▼ past zero to divest - This removes currently in action facilities of this fuel type. This earns a small bit of money for (the saved operation cost), but always less than it cost to build. Use divestment to cut GGEs while earning some money.`
+        },
+        {
+          heading: "Policy Investments",
+          body: `The right-hand panel lists policy options you can activate with a checkbox. Hover over any investment for a tooltip explaining what it does. Each card shows effect tags - showing exactly how the investment changes demand, GGE, and budget. Investments are one-off oppurtunities.`
+        },
+      ],
+      warning: null,
+      checkpoints: null,
+    },
+
+    2: {
+      badge: "Level 2 - 2030 Goals",
+      title: "Short Term Planning",
+      tagline: "",
+      sections: [
+            {
+              heading: "Time Lag",
+              body: "Invested units now take time to build. A nuclear plant with a 8-year lead time ordered in 2027 won't be ready until 2035. Plan ahead."
+            },
+            {
+              heading: "Multi-Year Play",
+              body: "You manage the grid across 2027-2030. Use the Prev / Next buttons in the header to move between years and make decisions for each one."
+            },
+            {
+              icon: null,
+              label: "Per-Year Budgets",
+              body: "Each year has its own budget. Unspent money does not roll over - use it in the year it's available or it'll go to waste."
+            },
+          
+        {
+          heading: "Goals",
+          body: `Hit the capacity, GGE, and budget goals to complete the level.`
+        },
+      ],
+      warning: null,
+      checkpoints: null,
+    },
+
+    3: {
+      badge: "Level 3 - 2050 Goals",
+      title: "Long Term Planning",
+      tagline: "",
+      sections: [
+        {
+          heading: "Commit and Advance",
+          tag: true,
+          body: `When you press <strong>"Commit and Advance"</strong> you lock in all decisions for that year and move forward permanently. You cannot go back. Review your goals panel and charts before every commit.`
+        },
+        {
+          heading: "Three Goal Checkpoints",
+          tag: true,
+          body: `Your grid is evaluated at three fixed checkpoints. You must hit your goals on all three to complete the level.`,
+          checkpoints: ["2035", "2040", "2050"],
+        },
+        {
+          heading: "Future-Planning",
+          body: `Don't only think about the next checkpoint - decisions made in 2030 directly shape what's achievable in 2040 and 2050. <strong>Nuclear has an 8-year lead time</strong>: commission it in 2030 and it comes online in 2038, ready for the 2040 goals. Offshore wind takes 4 years. Start your long-lead builds early.`
+        },
+        {
+          heading: "Divestment",
+          body: `Divesting fossil fuels cuts GGE and returns budget in the year you divest - useful for freeing up capital to put into the larger renewables and long-lead sources you'll need for 2040 and 2050.`
+        },
+        {
+          heading: "New Policy Options",
+          body: `Level 3 unlocks additional investments: a Carbon Tax, a Smart Grid upgrade, and the option to Attract Data Centre Investment - high risk, high reward: it adds demand and emissions but brings in a large budget bonus.`
+        },
+      ],
+      warning: {
+        heading: "No Going Back",
+        body: `Once you commit a year, that checkpoint's result is frozen. A missed target cannot be fixed later. Think carefully before committing.`
+      },
+    },
+  };
+
+  function buildIntroHTML(level) {
+    const d = LEVEL_INTROS[level];
+    let h = `
+      <div class="intro-badge">${d.badge}</div>
+      <h2>${d.title}</h2>
+      <p class="intro-tagline">${d.tagline}</p>
+      <hr class="intro-divider">`;
+
+    d.sections.forEach(sec => {
+      h += `<div class="intro-section">`;
+      const tagHtml = sec.tag ? `<span class="intro-new">New</span>` : "";
+      h += `<div class="intro-section-heading">${sec.heading}${tagHtml}</div>`;
+
+      if (sec.body) h += `<p>${sec.body}</p>`;
+
+      // mechanic grid
+      if (sec.mechanics) {
+        h += `<div class="intro-mechanics">`;
+        sec.mechanics.forEach(m => {
+          const mTag = m.tag ? `<span class="intro-new">New</span>` : "";
+          h += `<div class="intro-mech">
+            <div class="intro-mech-icon">${m.icon}</div>
+            <div class="intro-mech-label">${m.label}${mTag}</div>
+            <div class="intro-mech-desc">${m.desc}</div>
+          </div>`;
+        });
+        h += `</div>`;
+      }
+
+      // checkpoint chips
+      if (sec.checkpoints) {
+        h += `<div class="intro-chips">`;
+        sec.checkpoints.forEach(cp => { h += `<span class="intro-chip">${cp}</span>`; });
+        h += `</div>`;
+      }
+
+      h += `</div>`;
+    });
+
+    if (d.warning) {
+      h += `<div class="intro-warning">
+        <div class="intro-section-heading">${d.warning.heading}</div>
+        <p>${d.warning.body}</p>
+      </div>`;
+    }
+
+    h += `<button class="intro-start-btn" id="intro-start-btn">Let's Go ▶</button>`;
+    return h;
+  }
+
+  function showLevelIntro(levelNum, callback) {
+    const overlay = document.getElementById("level-intro-overlay");
+    const card    = document.getElementById("intro-card-content");
+    card.innerHTML = buildIntroHTML(levelNum);
+    card.scrollTop = 0;
+    overlay.style.display = "flex";
+
+    document.getElementById("intro-start-btn").addEventListener("click", () => {
+      overlay.style.display = "none";
+      callback();
+    });
+  }
+
   levelButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       const level = Number(btn.dataset.level);
       if (levelEverCompleted[level]) return;
-      loadLevel(level);
+      showLevelIntro(level, () => loadLevel(level));
     });
   });
 
   document.querySelectorAll(".redo-level-btn").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
-      loadLevel(Number(btn.dataset.level));
+      const level = Number(btn.dataset.level);
+      showLevelIntro(level, () => loadLevel(level));
     });
   });
 
