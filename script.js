@@ -3,16 +3,20 @@
 // ============================================================
 
 const ENERGY_SOURCES = [
-  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 100, operating: 110, leadTime: 3 },
-  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 120, operating:  70, leadTime: 2 },
-  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 140, operating: 100, leadTime: 4 },
-  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 180, operating: 150, leadTime: 1 },
-  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 250, operating: 200, leadTime: 5 },
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 30.25, unitGge: 0.00, construct: 300, operating: 250, leadTime: 3 },
-  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 220, operating: 180, leadTime: 2 },
+  // baseCap / unitCap = N; baseGge / unitGge = same N
+  // → divesting all N units drives both capacity and GGE exactly to zero
+  //
+  //  type        label           baseCap   baseGge   unitCap  unitGge  N   construct  operating  leadTime
+  { type: "oil",      label: "Oil",           baseCap:  5.75,  baseGge:  9.500, unitCap: 1.15,  unitGge: 1.9,   construct:  80, operating:  60, leadTime: 3 },  // N=5
+  { type: "gas",      label: "Gas",           baseCap: 13.16,  baseGge: 17.504, unitCap: 1.645, unitGge: 2.188, construct: 100, operating:  70, leadTime: 2 },  // N=8
+  { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead — workhorse renewable
+  { type: "solar",    label: "Solar",         baseCap:  1.05,  baseGge:  0.000, unitCap: 0.35,  unitGge: 0.00,  construct:  90, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest — fine-tune tool
+  { type: "offshore", label: "Offshore Wind", baseCap:  2.00,  baseGge:  0.000, unitCap: 2.00,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest — long-term bet
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.80,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow — plan far ahead
+  { type: "hydro",    label: "Hydro",         baseCap:  0.72,  baseGge:  0.000, unitCap: 0.72,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
 ];
 
-const DIVESTMENT_REFUND_RATE = 0.25;
+const DIVESTMENT_REFUND_RATE = 0.5;
 
 const LEVELS = {
   1: {
@@ -59,7 +63,7 @@ const LEVELS = {
     years: [2027, 2028, 2029, 2030],
     startingMix: {},
     ggeTargetByYear: { 2027: 25, 2028: 23, 2029: 22, 2030: 20 },
-    demandByYear:    { 2027: 34, 2028: 37, 2029: 39, 2030: 41 },
+    demandByYear:    { 2027: 34, 2028: 36, 2029: 37, 2030: 38 },
     useTimeLag: true,
     lockForward: false,
     investments: [
@@ -67,38 +71,38 @@ const LEVELS = {
         id: "heat-pump",
         label: "Heat Pump Grant",
         costM: 100,
-        effect: { demandReduction: 2.0, ggeReduction: 1.5 },
+        effect: { demandReduction: 1.0, ggeReduction: 1.0 },
         tooltip: "Replaces gas boilers with efficient electric heat pumps — cuts heating emissions and overall energy use.",
       },
       {
         id: "retrofitting",
         label: "Retrofitting Allowance",
         costM: 200,
-        effect: { demandReduction: 4.0 },
+        effect: { demandReduction: 2.0 },
         tooltip: "Funds insulation upgrades. Buildings consume less energy, directly reducing grid demand.",
       },
       {
         id: "ev-subsidy",
         label: "EV Subsidy Scheme",
-        costM: 150,
+        costM: 100,
         // EVs eliminate tailpipe emissions but add charging load to the grid
-        effect: { demandIncrease: 2.5, ggeReduction: 5.5 },
+        effect: { demandIncrease: 2.5, ggeReduction: 2.0 },
         tooltip: "Accelerates EV adoption. Removes transport emissions but increases electricity demand for charging.",
       },
       {
         id: "renewable-obligation",
         label: "Renewable Obligation Certificate",
-        costM: 120,
+        costM: 150,
         // Legally requires energy suppliers to source a share from renewables,
         // directly cutting the carbon intensity of the grid mix
-        effect: { ggeReduction: 4.5 },
+        effect: { ggeReduction: 2.0 },
         tooltip: "Requires energy suppliers to source a set share from renewables, cutting the carbon intensity of the grid.",
       },
     ],
   },
   3: {
     name: "2050 Long-Term Challenge",
-    budgetByYear: { 2030: 800, 2035: 900, 2040: 1000, 2045: 1200, 2050: 200 },
+    budgetByYear: { 2030: 800, 2035: 900, 2040: 900, 2045: 600, 2050: 200 },
     years: [2030, 2035, 2040, 2045, 2050],
     startingMix: {},
     goalYears: [2035, 2040, 2050],
@@ -107,8 +111,8 @@ const LEVELS = {
       2040: [2035, 2040],
       2050: [2045, 2050],
     },
-    ggeTargetByYear: { 2030: 27, 2035: 18, 2040: 14, 2045: 11, 2050: 9 },
-    demandByYear:    { 2030: 41, 2035: 44, 2040: 47, 2045: 49, 2050: 51 },
+    ggeTargetByYear: { 2030: 27, 2035: 26, 2040: 15, 2045: 10, 2050: 7 },
+    demandByYear:    { 2030: 34, 2035: 38, 2040: 42, 2045: 47, 2050: 52 },
     useTimeLag: true,
     lockForward: true,
     investments: [
@@ -116,37 +120,37 @@ const LEVELS = {
         id: "retrofitting",
         label: "Retrofitting Allowance",
         costM: 200,
-        effect: { demandReduction: 4.0 },
+        effect: { demandReduction: 2.5 },
         tooltip: "Funds insulation upgrades. Buildings consume less energy, directly reducing grid demand.",
       },
       {
         id: "carbon-tax",
         label: "Carbon Tax",
-        costM: 50,
+        costM: 250,
         // Price signal that discourages fossil fuel use and incentivises efficiency across the economy
-        effect: { ggeReduction: 4.0, demandReduction: 1.0 },
+        effect: { ggeReduction: 2.0, demandReduction: 1.0 },
         tooltip: "Puts a price on carbon emissions, cutting fossil fuel use economy-wide and nudging efficiency improvements.",
       },
       {
         id: "ev-subsidy",
         label: "EV Subsidy Scheme",
-        costM: 150,
-        effect: { demandIncrease: 2.5, ggeReduction: 5.5 },
+        costM: 100,
+        effect: { demandIncrease: 2, ggeReduction: 3 },
         tooltip: "Accelerates EV adoption. Removes transport emissions but increases electricity demand for charging.",
       },
       {
         id: "smart-grid",
         label: "Smart Grid Investment",
-        costM: 300,
+        costM: 400,
         // Smart grids reduce transmission losses and enable demand-side management
-        effect: { demandReduction: 2.5, ggeReduction: 1.0 },
+        effect: { demandReduction: 2.5, ggeReduction: 2.0 },
         tooltip: "Modernises grid infrastructure, cutting transmission losses and enabling smarter demand management.",
       },
       {
         id: "renewable-obligation",
         label: "Renewable Obligation Certificate",
-        costM: 120,
-        effect: { ggeReduction: 4.5 },
+        costM: 200,
+        effect: { ggeReduction: 2.0 },
         tooltip: "Requires energy suppliers to source a set share from renewables, cutting the carbon intensity of the grid.",
       },
       {
@@ -156,7 +160,7 @@ const LEVELS = {
         // Data centres are massive electricity consumers with high operational carbon,
         // but tax revenue and economic activity can fund further grid investment.
         // High-risk, high-reward: big demand & emissions penalty, big budget bonus.
-        effect: { demandIncrease: 5.0, ggeIncrease: 7.0, budgetBonus: 600 },
+        effect: { demandIncrease: 5.0, ggeIncrease: 2.0, budgetBonus: 500 },
         tooltip: "Attracts hyperscale data centres. Earns +€600M in tax revenues but adds major grid demand and emissions. A high-risk, high-reward trade-off.",
       },
     ],
