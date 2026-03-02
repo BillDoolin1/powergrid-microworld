@@ -436,7 +436,7 @@ button[type="submit"]:hover {
 
 
 #energy-table td {
-  padding: 9px 10px;
+  padding: 9px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   vertical-align: middle;
   white-space: nowrap;
@@ -524,7 +524,7 @@ button[type="submit"]:hover {
 }
 #investment-panel h4 {
   margin: 0 0 10px 0;
-  text-align: center;
+  text-align: left;
   font-size: 1rem;
 }
 
@@ -704,3 +704,32 @@ button[type="submit"]:hover {
 }
 
 .units-divested { color: #ff6b6b; }
+
+/* Investment effect tags */
+.inv-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-family: monospace;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.inv-tag--demand-down {
+  background: rgba(64, 145, 108, 0.35);
+  border: 1px solid rgba(82, 183, 136, 0.6);
+  color: #b7e4c7;
+}
+
+.inv-tag--demand-up {
+  background: rgba(255, 152, 0, 0.25);
+  border: 1px solid rgba(255, 152, 0, 0.55);
+  color: #ffe0a3;
+}
+
+.inv-tag--gge {
+  background: rgba(100, 180, 255, 0.18);
+  border: 1px solid rgba(100, 180, 255, 0.45);
+  color: #b3d9ff;
+}

@@ -3,13 +3,13 @@
 // ============================================================
 
 const ENERGY_SOURCES = [
-  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 1.0, operating: 110, leadTime: 3 },
-  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 1.2, operating:  70, leadTime: 2 },
-  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 1.4, operating: 100, leadTime: 4 },
-  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 1.8, operating: 150, leadTime: 1 },
-  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 2.5, operating: 200, leadTime: 5 },
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 30.25, unitGge: 0.00, construct: 3.0, operating: 250, leadTime: 3 },
-  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 2.2, operating: 180, leadTime: 2 },
+  { type: "oil",      label: "Oil",           baseCap: 5.75,  baseGge: 9.50,  unitCap: 0.35, unitGge: 0.10, construct: 100, operating: 110, leadTime: 3 },
+  { type: "gas",      label: "Gas",           baseCap: 13.16, baseGge: 17.50, unitCap: 0.35, unitGge: 0.10, construct: 120, operating:  70, leadTime: 2 },
+  { type: "wind",     label: "Wind",          baseCap: 10.46, baseGge:  0.20, unitCap: 0.25, unitGge: 0.00, construct: 140, operating: 100, leadTime: 4 },
+  { type: "solar",    label: "Solar",         baseCap:  1.05, baseGge:  0.08, unitCap: 0.45, unitGge: 0.00, construct: 180, operating: 150, leadTime: 1 },
+  { type: "offshore", label: "Offshore Wind", baseCap:  0.90, baseGge:  0.05, unitCap: 0.45, unitGge: 0.00, construct: 250, operating: 200, leadTime: 5 },
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.0,  baseGge:  0.00, unitCap: 30.25, unitGge: 0.00, construct: 300, operating: 250, leadTime: 3 },
+  { type: "hydro",    label: "Hydro",         baseCap:  0.36, baseGge:  0.02, unitCap: 0.25, unitGge: 0.00, construct: 220, operating: 180, leadTime: 2 },
 ];
 
 const DIVESTMENT_REFUND_RATE = 0.25;
@@ -26,13 +26,35 @@ const LEVELS = {
     demandByYear: {"":50, 2026: 50, "":50 },
     useTimeLag: false,
     investments: [
-      { id: "solar-grant",  label: "Home Solar Panel Grant", costM:  75, ggeReduction: 2.0 },
-      { id: "heat-pump",    label: "Heat Pump Grant",         costM: 100, ggeReduction: 3.5 },
-      { id: "retrofitting", label: "Retrofitting Allowance", costM: 200, ggeReduction: 5.0 },
+      {
+        id: "solar-grant",
+        label: "Home Solar Panel Grant",
+        costM: 75,
+        // Rooftop solar offsets household consumption — reduces how much grid supply is needed
+        effect: { demandReduction: 1.5 },
+        tooltip: "Subsidises rooftop solar panels, reducing households' reliance on the grid.",
+      },
+      {
+        id: "heat-pump",
+        label: "Heat Pump Grant",
+        costM: 100,
+        // Heat pumps are ~3× more efficient than gas boilers — cuts energy demand
+        // BUT switching from gas to electric shifts some fossil demand onto the grid
+        effect: { demandReduction: 2.0, ggeReduction: 1.5 },
+        tooltip: "Replaces gas boilers with efficient electric heat pumps — cuts heating emissions and overall energy use.",
+      },
+      {
+        id: "retrofitting",
+        label: "Retrofitting Allowance",
+        costM: 200,
+        // Better insulation means buildings need less energy to heat/cool
+        effect: { demandReduction: 4.0 },
+        tooltip: "Funds insulation and energy-efficiency upgrades. Buildings consume less energy, directly reducing grid demand.",
+      },
     ],
   },
   2: {
-    name: "Short-Term Planning",
+    name: "2030 Energy Goals",
     budgetByYear: { 2027: 700, 2028: 650, 2029: 400, 2030: 150 },
     years: [2027, 2028, 2029, 2030],
     startingMix: {},
@@ -41,9 +63,28 @@ const LEVELS = {
     useTimeLag: true,
     lockForward: false,
     investments: [
-      { id: "heat-pump",    label: "Heat Pump Grant",         costM: 100, ggeReduction: 3.5 },
-      { id: "retrofitting", label: "Retrofitting Allowance", costM: 200, ggeReduction: 5.0 },
-      { id: "ev-subsidy",   label: "EV Subsidy Scheme",       costM: 150, ggeReduction: 4.0 },
+      {
+        id: "heat-pump",
+        label: "Heat Pump Grant",
+        costM: 100,
+        effect: { demandReduction: 2.0, ggeReduction: 1.5 },
+        tooltip: "Replaces gas boilers with efficient electric heat pumps — cuts heating emissions and overall energy use.",
+      },
+      {
+        id: "retrofitting",
+        label: "Retrofitting Allowance",
+        costM: 200,
+        effect: { demandReduction: 4.0 },
+        tooltip: "Funds insulation upgrades. Buildings consume less energy, directly reducing grid demand.",
+      },
+      {
+        id: "ev-subsidy",
+        label: "EV Subsidy Scheme",
+        costM: 150,
+        // EVs eliminate tailpipe emissions but add charging load to the grid
+        effect: { demandIncrease: 2.5, ggeReduction: 5.5 },
+        tooltip: "Accelerates EV adoption. Removes transport emissions but increases electricity demand for charging.",
+      },
     ],
   },
   3: {
@@ -62,10 +103,36 @@ const LEVELS = {
     useTimeLag: true,
     lockForward: true,
     investments: [
-      { id: "retrofitting", label: "Retrofitting Allowance", costM: 200, ggeReduction: 5.0 },
-      { id: "carbon-tax",   label: "Carbon Tax",              costM:  50, ggeReduction: 6.0 },
-      { id: "ev-subsidy",   label: "EV Subsidy Scheme",       costM: 150, ggeReduction: 4.0 },
-      { id: "smart-grid",   label: "Smart Grid Investment",   costM: 300, ggeReduction: 2.0 },
+      {
+        id: "retrofitting",
+        label: "Retrofitting Allowance",
+        costM: 200,
+        effect: { demandReduction: 4.0 },
+        tooltip: "Funds insulation upgrades. Buildings consume less energy, directly reducing grid demand.",
+      },
+      {
+        id: "carbon-tax",
+        label: "Carbon Tax",
+        costM: 50,
+        // Price signal that discourages fossil fuel use and incentivises efficiency across the economy
+        effect: { ggeReduction: 4.0, demandReduction: 1.0 },
+        tooltip: "Puts a price on carbon emissions, cutting fossil fuel use economy-wide and nudging efficiency improvements.",
+      },
+      {
+        id: "ev-subsidy",
+        label: "EV Subsidy Scheme",
+        costM: 150,
+        effect: { demandIncrease: 2.5, ggeReduction: 5.5 },
+        tooltip: "Accelerates EV adoption. Removes transport emissions but increases electricity demand for charging.",
+      },
+      {
+        id: "smart-grid",
+        label: "Smart Grid Investment",
+        costM: 300,
+        // Smart grids reduce transmission losses and enable demand-side management
+        effect: { demandReduction: 2.5, ggeReduction: 1.0 },
+        tooltip: "Modernises grid infrastructure, cutting transmission losses and enabling smarter demand management.",
+      },
     ],
   },
 };
@@ -165,8 +232,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function capacityTarget() {
+    const fy = finalYear();
     return currentConfig.demandByYear
-      ? currentConfig.demandByYear[finalYear()]
+      ? getEffectiveDemand(fy)
       : currentConfig.capacityTarget;
   }
 
@@ -185,10 +253,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentConfig.lockForward && yearIndex <= lockedUpToIndex;
   }
 
+  // Returns net GGE reduction from all checked investments
   function getTotalGgeReduction() {
     return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
       .filter(cb => cb.checked)
       .reduce((sum, cb) => sum + num(cb.dataset.ggeReduction, 0), 0);
+  }
+
+  // Returns net demand delta from all checked investments
+  // demandReduction lowers it; demandIncrease raises it (e.g. EVs shift transport onto grid)
+  function getTotalDemandEffect() {
+    return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
+      .filter(cb => cb.checked)
+      .reduce((sum, cb) => {
+        const reduction = num(cb.dataset.demandReduction, 0);
+        const increase  = num(cb.dataset.demandIncrease,  0);
+        return sum + increase - reduction;  // positive = net demand increase
+      }, 0);
+  }
+
+  // Effective demand for a given year after investment effects
+  function getEffectiveDemand(yr) {
+    const base = currentConfig.demandByYear
+      ? (currentConfig.demandByYear[yr] ?? 0)
+      : (currentConfig.capacityTarget ?? 0);
+    return Math.max(0, base + getTotalDemandEffect());
   }
 
   function getGoalYearStatus(gy) {
@@ -200,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
       gge += getBaseGge(s.type) + online * s.unitGge;
     });
     const ggeNet    = Math.max(0, gge - ggeReduction);
-    const capTarget = currentConfig.demandByYear[gy];
+    const capTarget = getEffectiveDemand(gy);
     const ggeT      = currentConfig.ggeTargetByYear[gy];
     const budgetYrs = currentConfig.goalBudgetYears
       ? currentConfig.goalBudgetYears[gy]
@@ -426,6 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startingSupply   = null;
     currentLevel     = levelNum;
     currentConfig    = LEVELS[levelNum];
+    document.getElementById("level-title").textContent = `Level ${levelNum} — ${currentConfig.name}`;
     currentYearIndex = 0;
     unitState        = {};
     investmentYear   = {};
@@ -647,10 +737,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return `
         <tr class="energy-row" style="text-align:left;" data-type="${s.type}">
           <th scope="row">${s.label}</th>
+          <td><span id="pct-${s.type}">0</span>%</td>
           <td>${s.construct}M</td>
           <td>${s.leadTime}</td>
-          <td>${s.operating}</td>
-          <td><span id="pct-${s.type}">0</span>%</td>
+          <td>${s.unitCap} TWh</td>
           <td><span id="gge-${s.type}">${dispGge.toFixed(2)}</span></td>
           <td><span id="cap-${s.type}">${dispCap.toFixed(2)}</span></td>
           <td><span id="units-${s.type}">0</span>${pendingHtml}</td>
@@ -667,17 +757,31 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Render: Investments
   // ============================================================
   function renderInvestments() {
-    investmentList.innerHTML = currentConfig.investments.map(inv => `
-      <div class="invest-item">
-        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1;">
+    investmentList.innerHTML = currentConfig.investments.map(inv => {
+      const eff = inv.effect || {};
+      const tags = [];
+      if (eff.demandReduction) tags.push(`<span class="inv-tag inv-tag--demand-down">&#8595; Demand &minus;${eff.demandReduction} TWh</span>`);
+      if (eff.demandIncrease)  tags.push(`<span class="inv-tag inv-tag--demand-up">&#8593; Demand +${eff.demandIncrease} TWh</span>`);
+      if (eff.ggeReduction)    tags.push(`<span class="inv-tag inv-tag--gge">&#8595; GGE &minus;${eff.ggeReduction} Mt</span>`);
+
+      return `
+      <div class="invest-item" ${inv.tooltip ? `title="${inv.tooltip}"` : ""}>
+        <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; flex:1;">
           <input type="checkbox"
                  id="inv-${inv.id}"
                  data-cost="${inv.costM}"
-                 data-gge-reduction="${inv.ggeReduction}"
-                 data-inv-id="${inv.id}">
-          <span>${inv.label} (Cost &euro;${inv.costM}M)</span>
+                 data-gge-reduction="${eff.ggeReduction    || 0}"
+                 data-demand-reduction="${eff.demandReduction || 0}"
+                 data-demand-increase="${eff.demandIncrease  || 0}"
+                 data-inv-id="${inv.id}"
+                 style="margin-top:3px;">
+          <div>
+            <div>${inv.label} &mdash; &euro;${inv.costM}M</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">${tags.join("")}</div>
+          </div>
         </label>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
 
   // ============================================================
@@ -809,7 +913,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ENERGY_SOURCES.forEach(s => {
       const online = getOnlineUnits(s.type, yr);
       const cap    = getBaseCap(s.type) + online * s.unitCap;
-      const pct    = totalCap > 0 ? ((cap / totalCap) * 100).toFixed(1) : "0.0";
+      const pct = totalCap > 0 ? ((cap / totalCap) * 100).toFixed(1) : "0.0";
       const el     = document.getElementById(`pct-${s.type}`);
       if (el) el.textContent = pct;
     });
@@ -994,9 +1098,9 @@ document.addEventListener("DOMContentLoaded", () => {
         byYear[yr] = thisYr + 1;
         if (currentConfig.budgetByYear) {
           if (total < 0) {
-            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * DIVESTMENT_REFUND_RATE);
           } else {
-            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct * 100);
+            yearSpend[yr].units = (yearSpend[yr].units || 0) + (source.construct);
           }
         }
         if (byYear[yr] === 0) delete byYear[yr];
@@ -1012,13 +1116,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const refundYr = getMostRecentInvestedYear(type);
             if (refundYr !== null) {
               if (!yearSpend[refundYr]) yearSpend[refundYr] = { units: 0, investments: 0 };
-              yearSpend[refundYr].units = (yearSpend[refundYr].units || 0) - (source.construct * 100);
+              yearSpend[refundYr].units = (yearSpend[refundYr].units || 0) - (source.construct);
               byYear[refundYr] = (byYear[refundYr] || 0) - 1;
               if (byYear[refundYr] === 0) delete byYear[refundYr];
             }
           } else {
             // total === 0: divesting merged/base capacity at 0.25 rate
-            yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * 100 * DIVESTMENT_REFUND_RATE);
+            yearSpend[yr].units = (yearSpend[yr].units || 0) - (source.construct * DIVESTMENT_REFUND_RATE);
             byYear[yr] = thisYr - 1;
             if (byYear[yr] === 0) delete byYear[yr];
           }
@@ -1103,7 +1207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const yearsForCharts = currentConfig.chartYears || currentConfig.years;
-    const demandData     = yearsForCharts.map(y => currentConfig.demandByYear[y]);
+    const demandData     = yearsForCharts.map(y => currentConfig.demandByYear ? getEffectiveDemand(y) : currentConfig.capacityTarget);
     const labels         = yearsForCharts.map(String);
 
     const demandCtx = document.getElementById("demandChart").getContext("2d");
@@ -1184,13 +1288,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return parseFloat(Math.max(0, gge - ggeReduction).toFixed(2));
       });
 
-      charts.demand.data.datasets[1].data = supplyData;
+    charts.demand.data.datasets[0].data = yearsForCharts.map(y =>
+      currentConfig.demandByYear ? getEffectiveDemand(y) : currentConfig.capacityTarget
+    );
+    charts.demand.data.datasets[1].data = supplyData;
       charts.gge.data.datasets[0].data    = ggeData;
 
     } else {
       // Levels 1 & 2: original interpolated line
       const supplyNow   = parseFloat(totals.finalCap.toFixed(2));
       const supplyStart = startingSupply ?? supplyNow;
+      charts.demand.data.datasets[0].data = yearsForCharts.map(y =>
+        currentConfig.demandByYear ? getEffectiveDemand(y) : currentConfig.capacityTarget
+      );
       charts.demand.data.datasets[1].data = Array.from({ length: numLabels }, (_, i) =>
         parseFloat((supplyStart + (supplyNow - supplyStart) * (i / (numLabels - 1))).toFixed(2))
       );
