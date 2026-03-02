@@ -21,7 +21,7 @@ ignore divestment - can freely divest at all times at the same rates as normal
 
 divestment is punished at 100% the divestment rate we usually use
 
-divestment is punished at an ammended divestment rate- less harsh divestment rates used
+divestment is punished only when going below 0, less harsh divestment rates used
 
 additiional poi is how divestment will affect investment - need to ensure if a unit is divested
  from the capacity never gets actuated/ stops being actuated
@@ -29,17 +29,20 @@ additiional poi is how divestment will affect investment - need to ensure if a u
 
 
  DECISIONS: 
+
  Core years:
+
  Decided on just core years in the end The learning goal is understanding the long-term energy transition,
  not too make the user spend all the time juggling between implementing non renewables on and off till the
  renewables hit. Ireland already gets a lot of its power from imported oil/gas therefore i think its 
  reasonable to assume that discrepancies there should be covered by this - could be worth seeing whether
  budget should be tanked for this - hmmm
 
-Divestment with Time Lag:
-ammended divestment rate - nice middle ground beween harsh and too lenient -realistic to real world too
-operation cost saved but demoliition costs etc.
-need to implement a way to seperate the fuel mix table to tell what got added each year to know whether 
-to apply the full rata or not (if its cliicked then unclicked straight away in the plan we should refund full)
+Divestment only when below 0:
 
-POI
+otherwise students divesting units would lose money silently and lead to the need for constant resets as opposed 
+to teachign the core learning goal of Level 2, which is prioritisation — understanding which energy sources
+to commit to given limited budget and lead times.If a student accidentally divests a unit they meant to keep,
+losing money silently and needing to reset is frustrating rather than educational.
+For level 3 need to implement a way to seperate the fuel mix table to tell what got added each year to know whether 
+to apply the full rata or not (if its cliicked then unclicked straight away in the plan we should refund full)

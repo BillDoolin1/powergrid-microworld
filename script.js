@@ -11,7 +11,7 @@ const ENERGY_SOURCES = [
   { type: "gas",      label: "Gas",           baseCap: 13.16,  baseGge: 17.504, unitCap: 1.645, unitGge: 2.188, construct: 100, operating:  70, leadTime: 2 },  // N=8
   { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead - workhorse renewable
   { type: "solar",    label: "Solar",         baseCap:  1.05,  baseGge:  0.000, unitCap: 0.35,  unitGge: 0.00,  construct:  90, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest - fine-tune tool
-  { type: "offshore", label: "Offshore Wind", baseCap:  2.00,  baseGge:  0.000, unitCap: 2.00,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest - long-term bet
+  { type: "offshore", label: "Offshore Wind", baseCap:  2.20,  baseGge:  0.000, unitCap: 2.20,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest - long-term bet
   { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.80,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
   { type: "hydro",    label: "Hydro",         baseCap:  0.72,  baseGge:  0.000, unitCap: 0.72,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
 ];
