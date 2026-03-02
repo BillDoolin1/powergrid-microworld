@@ -85,6 +85,15 @@ const LEVELS = {
         effect: { demandIncrease: 2.5, ggeReduction: 5.5 },
         tooltip: "Accelerates EV adoption. Removes transport emissions but increases electricity demand for charging.",
       },
+      {
+        id: "renewable-obligation",
+        label: "Renewable Obligation Certificate",
+        costM: 120,
+        // Legally requires energy suppliers to source a share from renewables,
+        // directly cutting the carbon intensity of the grid mix
+        effect: { ggeReduction: 4.5 },
+        tooltip: "Requires energy suppliers to source a set share from renewables, cutting the carbon intensity of the grid.",
+      },
     ],
   },
   3: {
@@ -132,6 +141,23 @@ const LEVELS = {
         // Smart grids reduce transmission losses and enable demand-side management
         effect: { demandReduction: 2.5, ggeReduction: 1.0 },
         tooltip: "Modernises grid infrastructure, cutting transmission losses and enabling smarter demand management.",
+      },
+      {
+        id: "renewable-obligation",
+        label: "Renewable Obligation Certificate",
+        costM: 120,
+        effect: { ggeReduction: 4.5 },
+        tooltip: "Requires energy suppliers to source a set share from renewables, cutting the carbon intensity of the grid.",
+      },
+      {
+        id: "datacenter",
+        label: "Attract Data Centre Investment",
+        costM: 0,
+        // Data centres are massive electricity consumers with high operational carbon,
+        // but tax revenue and economic activity can fund further grid investment.
+        // High-risk, high-reward: big demand & emissions penalty, big budget bonus.
+        effect: { demandIncrease: 5.0, ggeIncrease: 7.0, budgetBonus: 600 },
+        tooltip: "Attracts hyperscale data centres. Earns +€600M in tax revenues but adds major grid demand and emissions. A high-risk, high-reward trade-off.",
       },
     ],
   },
@@ -253,11 +279,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentConfig.lockForward && yearIndex <= lockedUpToIndex;
   }
 
-  // Returns net GGE reduction from all checked investments
+  // Returns net GGE reduction from all checked investments (ggeIncrease offsets it)
   function getTotalGgeReduction() {
     return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
       .filter(cb => cb.checked)
-      .reduce((sum, cb) => sum + num(cb.dataset.ggeReduction, 0), 0);
+      .reduce((sum, cb) => {
+        const reduction = num(cb.dataset.ggeReduction, 0);
+        const increase  = num(cb.dataset.ggeIncrease,  0);
+        return sum + reduction - increase;  // positive = net reduction
+      }, 0);
+  }
+
+  // Returns total extra budget earned from checked investments (e.g. data centres)
+  function getTotalBudgetBonus() {
+    return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
+      .filter(cb => cb.checked)
+      .reduce((sum, cb) => sum + num(cb.dataset.budgetBonus, 0), 0);
   }
 
   // Returns net demand delta from all checked investments
@@ -294,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const budgetYrs = currentConfig.goalBudgetYears
       ? currentConfig.goalBudgetYears[gy]
       : currentConfig.years.filter(y => y <= gy);
-    const budgetOk  = budgetYrs.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y]);
+    const budgetOk  = budgetYrs.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y] + getTotalBudgetBonus());
     const capOk     = cap >= capTarget;
     const ggeOk     = ggeNet <= ggeT;
     return { cap, ggeNet, capTarget, ggeT, capOk, ggeOk, budgetOk, budgetYrs, allOk: capOk && ggeOk && budgetOk };
@@ -476,13 +513,13 @@ document.addEventListener("DOMContentLoaded", () => {
         : `<span style="color:#e63946; font-weight:bold;">✗</span>`;
 
       const budgetSubRows = budgetYrs.map(y => {
-        const bCap  = currentConfig.budgetByYear[y];
+        const bCap  = currentConfig.budgetByYear[y] + getTotalBudgetBonus();
         const spent = getYearSpend(y);
         const ok    = spent <= bCap;
         return `
           <div style="display:flex; justify-content:space-between; padding-left:14px;
                       font-size:0.8rem; opacity:0.85; margin-bottom:3px;">
-            <span>${y} — &euro;${spent.toFixed(0)}M / &euro;${bCap}M</span>${tick(ok)}
+            <span>${y} — &euro;${spent.toFixed(0)}M / &euro;${bCap.toFixed(0)}M</span>${tick(ok)}
           </div>`;
       }).join("");
 
@@ -608,15 +645,15 @@ document.addEventListener("DOMContentLoaded", () => {
     let budgetGoalHtml;
     if (currentConfig.budgetByYear) {
       const years    = currentConfig.years;
-      const allUnder = years.every(yr => getYearSpend(yr) <= currentConfig.budgetByYear[yr]);
+      const allUnder = years.every(yr => getYearSpend(yr) <= currentConfig.budgetByYear[yr] + getTotalBudgetBonus());
       const subRows  = years.map(yr => {
-        const cap   = currentConfig.budgetByYear[yr];
+        const cap   = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
         const spent = getYearSpend(yr);
         const ok    = spent <= cap;
         return `
           <div class="goal" style="padding-left:16px; font-size:0.82rem; opacity:0.9;">
             <span>${yr}</span>
-            <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${cap}M</span>
+            <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${cap.toFixed(0)}M</span>
             <span class="goal-status ${ok ? 'complete' : 'incomplete'}">${ok ? '&#10003;' : '&#10007;'}</span>
           </div>`;
       }).join("");
@@ -678,13 +715,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const { cap, ggeNet, capTarget, ggeT, capOk, ggeOk, budgetOk, budgetYrs } = getGoalYearStatus(gy);
 
     const budgetSubRows = budgetYrs.map(yr => {
-      const bCap  = currentConfig.budgetByYear[yr];
+      const bCap  = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
       const spent = getYearSpend(yr);
       const ok    = spent <= bCap;
       return `
         <div class="goal" style="padding-left:16px; font-size:0.82rem; opacity:0.9;">
           <span>${yr}</span>
-          <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${bCap}M</span>
+          <span class="goal-progress">&euro;${spent.toFixed(0)}M / &euro;${bCap.toFixed(0)}M</span>
           <span class="goal-status ${ok ? 'complete' : 'incomplete'}">${ok ? '&#10003;' : '&#10007;'}</span>
         </div>`;
     }).join("");
@@ -763,6 +800,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (eff.demandReduction) tags.push(`<span class="inv-tag inv-tag--demand-down">&#8595; Demand &minus;${eff.demandReduction} TWh</span>`);
       if (eff.demandIncrease)  tags.push(`<span class="inv-tag inv-tag--demand-up">&#8593; Demand +${eff.demandIncrease} TWh</span>`);
       if (eff.ggeReduction)    tags.push(`<span class="inv-tag inv-tag--gge">&#8595; GGE &minus;${eff.ggeReduction} Mt</span>`);
+      if (eff.ggeIncrease)     tags.push(`<span class="inv-tag inv-tag--gge-up">&#8593; GGE +${eff.ggeIncrease} Mt</span>`);
+      if (eff.budgetBonus)     tags.push(`<span class="inv-tag inv-tag--budget">&#43; &euro;${eff.budgetBonus}M revenue</span>`);
 
       return `
       <div class="invest-item" ${inv.tooltip ? `title="${inv.tooltip}"` : ""}>
@@ -771,8 +810,10 @@ document.addEventListener("DOMContentLoaded", () => {
                  id="inv-${inv.id}"
                  data-cost="${inv.costM}"
                  data-gge-reduction="${eff.ggeReduction    || 0}"
+                 data-gge-increase="${eff.ggeIncrease      || 0}"
                  data-demand-reduction="${eff.demandReduction || 0}"
                  data-demand-increase="${eff.demandIncrease  || 0}"
+                 data-budget-bonus="${eff.budgetBonus        || 0}"
                  data-inv-id="${inv.id}"
                  style="margin-top:3px;">
           <div>
@@ -898,9 +939,11 @@ document.addEventListener("DOMContentLoaded", () => {
     ggeTotalEl.textContent = totalGge.toFixed(2);
 
     if (currentConfig.budgetByYear) {
-      const cap       = currentConfig.budgetByYear[yr];
-      const spent     = getYearSpend(yr);
-      const remaining = cap - spent;
+      const baseCap     = currentConfig.budgetByYear[yr];
+      const bonus       = getTotalBudgetBonus();
+      const cap         = baseCap + bonus;
+      const spent       = getYearSpend(yr);
+      const remaining   = cap - spent;
       headerBudgetSpent.textContent     = spent.toFixed(2);
       headerBudgetRemaining.textContent = remaining.toFixed(2);
       const budgetEl = document.querySelector(".level-header-budget");
@@ -926,7 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (currentConfig.budgetByYear) {
       capMet    = finalCap >= capacityTarget();
       ggeMet    = finalGgeNet <= ggeTarget();
-      budgetMet = currentConfig.years.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y]);
+      budgetMet = currentConfig.years.every(y => getYearSpend(y) <= currentConfig.budgetByYear[y] + getTotalBudgetBonus());
     } else {
       capMet    = finalCap >= capacityTarget();
       ggeMet    = finalGgeNet <= ggeTarget();
