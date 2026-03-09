@@ -1505,7 +1505,7 @@ document.addEventListener("DOMContentLoaded", () => {
           heading: "Your Objective",
           body: `Manage Ireland's power grid and meet three targets by the end of the year:<br>
                  &bull; <strong>Capacity (TWh)</strong> - supply must match projected demand.<br>
-                 &bull; <strong>GGE (MtCO₂eq)</strong> - Greenhouse Gas Emissions (GGE) must fall below the limit.
+                 &bull; <strong>GGE (MtCO₂eq)</strong> - Greenhouse Gas Emissions (GGE) must fall below the limit.<br>
                  &bull; <strong>Budget (€M)</strong> - stay within the allocated budget (measured in million euros (M)).`
         },
         {
@@ -1539,8 +1539,8 @@ document.addEventListener("DOMContentLoaded", () => {
               body: "You manage the grid across 2027-2030. Use the Prev / Next buttons in the header to move between years and make decisions for each one."
             },
             {
-              icon: null,
-              label: "Per-Year Budgets",
+              
+              heading: "Per-Year Budgets",
               body: "Each year has its own budget. Unspent money does not roll over - use it in the year it's available or it'll go to waste."
             },
           
