@@ -177,8 +177,11 @@ button[type="submit"]:hover {
 
 .level-btn.completed::after {
   content: " ✓ Completed";
-  font-size: 0.9rem;
-  opacity: 0.85;
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.75;
+  margin-top: 4px;
+  font-family: monospace;
 }
 
 /* ============================================================
@@ -663,7 +666,7 @@ button[type="submit"]:hover {
 #view-level-btn, #next-level-btn, #redo-btn, #close-level-complete-btn     
 { background: #4CAF50; color: white; }
 
-.btn-best-time {
+.btn-best-time, .btn-best-budget {
   display: block;
   font-size: 0.78rem;
   opacity: 0.75;

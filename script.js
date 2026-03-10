@@ -208,6 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewLevelBtn          = document.getElementById("view-level-btn");
 
   const bestTimes = { 1: null, 2: null, 3: null };
+  const bestBudget = { 1: null, 2: null, 3: null };
+
 
   const levelCompleted = { 1: false, 2: false, 3: false };
   let startingGgeNet   = null;
@@ -288,6 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const key = `pgm_${name}`;
     localStorage.setItem(key, JSON.stringify({
       bestTimes,
+      bestBudget,
       levelEverCompleted,
       levelCompleted,
     }));
@@ -299,6 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!saved) return false;
     const data = JSON.parse(saved);
     if (data.bestTimes)         Object.assign(bestTimes,          data.bestTimes);
+    if (data.bestBudget) Object.assign(bestBudget, data.bestBudget);
     if (data.levelEverCompleted) Object.assign(levelEverCompleted, data.levelEverCompleted);
     if (data.levelCompleted)    Object.assign(levelCompleted,     data.levelCompleted);
     return true;
@@ -483,10 +487,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <div id="summary-actions" style="margin-top:20px; display:none; gap:10px;">
           <button id="summary-reset-btn"
             style="flex:1; padding:10px; background:#e63946; border:none; border-radius:8px;
-                   color:#fff; font-size:1rem; cursor:pointer;">&#8635; Reset Level</button>
+                   color:#fff; font-size:1rem; cursor:pointer;"> Reset Level</button>
           <button id="summary-exit-btn"
             style="flex:1; padding:10px; background:#2d6a4f; border:none; border-radius:8px;
-                   color:#fff; font-size:1rem; cursor:pointer;">&#8592; Exit Menu</button>
+                   color:#fff; font-size:1rem; cursor:pointer;">Return to Level Select</button>
         </div>
         <button id="summary-close-btn"
           style="margin-top:12px; width:100%; padding:10px; background:#52b788; border:none;
@@ -1038,6 +1042,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bestTimes[currentLevel] === null || finishTime < bestTimes[currentLevel]) {
       bestTimes[currentLevel] = finishTime;
     }
+    const totalRemaining = currentConfig.budgetByYear
+      ? currentConfig.years.reduce((sum, yr) => {
+          const cap = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
+          const spent = getYearSpend(yr);
+          return sum + (cap - spent);
+        }, 0)
+
+      : (currentConfig.budgetM - recomputeTotals().totalSpent);
+    if (bestBudget[currentLevel] === null || totalRemaining > bestBudget[currentLevel]) {
+      bestBudget[currentLevel] = totalRemaining;
+    }
 
     const nextLevel = currentLevel + 1;
     const hasNext   = nextLevel <= 3;
@@ -1080,6 +1095,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (bestTimes[currentLevel] === null || finishTime < bestTimes[currentLevel]) {
         bestTimes[currentLevel] = finishTime;
       }
+    const totalRemaining = currentConfig.years.reduce((sum, yr) => {
+      const cap = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
+      const spent = getYearSpend(yr);
+      return sum + (cap - spent);
+    }, 0);
+
+    if (bestBudget[currentLevel] === null || totalRemaining > bestBudget[currentLevel]) {
+      bestBudget[currentLevel] = totalRemaining;
+    }
+
       if (currentLevel < 3) unlockLevel(currentLevel + 1);
       refreshLevelButtons();
       saveProgress(localStorage.getItem("pgm_playerName"));
@@ -1103,7 +1128,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (levelCompleted[level]) btn.classList.add("completed");
       const timeEl = btn.querySelector(".btn-best-time");
       if (timeEl && bestTimes[level] !== null) {
-        timeEl.textContent = `Best: ${formatTime(bestTimes[level])}`;
+        timeEl.textContent = `Quickest Time: ${formatTime(bestTimes[level])}`;
+      }
+      const budgetEl = btn.querySelector(".btn-best-budget");
+      if (budgetEl && bestBudget[level] !== null) {
+        budgetEl.textContent = `Highest remaining Budget: €${bestBudget[level].toFixed(0)}M`;
       }
     });
     document.querySelectorAll(".redo-level-btn").forEach(btn => {
@@ -1293,6 +1322,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const existingBtn = document.getElementById("submit-level-btn");
     if (existingBtn) existingBtn.remove();
+    if (currentConfig.goalYears) return;
+
 
     const submitBtn = document.createElement("button");
     submitBtn.id = "submit-level-btn";
