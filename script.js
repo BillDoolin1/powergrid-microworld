@@ -1015,9 +1015,7 @@ document.addEventListener("DOMContentLoaded", () => {
       headerBudgetRemaining.parentElement.classList.toggle("over-budget", !budgetMet);
     }
 
-    if (!currentConfig.goalYears) {
-      checkLevelCompletion(capMet, ggeMet, budgetMet);
-    }
+   
 
     return { totalCap, totalGge, ggeNet, finalCap, finalGgeNet, capMet, ggeMet, budgetMet, totalSpent, totalRemaining };
   }
@@ -1031,8 +1029,8 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Level completion
   // ============================================================
   function checkLevelCompletion(capMet, ggeMet, budgetMet) {
-    if (!capMet || !ggeMet || !budgetMet) return;
     if (levelCompleted[currentLevel]) return;
+    if (!capMet || !ggeMet || !budgetMet) return;
     levelCompleted[currentLevel]     = true;
     levelEverCompleted[currentLevel] = true;
 
@@ -1057,10 +1055,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     levelCompleteOverlay.style.display = "flex";
     refreshLevelButtons();
-
     saveProgress(localStorage.getItem("pgm_playerName"));
-    
   }
+
 
   function triggerFinalCommit() {
     gamePaused = true;
@@ -1111,6 +1108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.querySelectorAll(".redo-level-btn").forEach(btn => {
       const level = Number(btn.dataset.level);
+      levelCompleted[level] = false;
       btn.style.display = levelEverCompleted[level] ? "inline-block" : "none";
     });
   }
@@ -1291,7 +1289,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     updateCharts(totals);
+
+
+    const existingBtn = document.getElementById("submit-level-btn");
+    if (existingBtn) existingBtn.remove();
+
+    const submitBtn = document.createElement("button");
+    submitBtn.id = "submit-level-btn";
+    submitBtn.textContent = "✔ Submit Attempt";
+    submitBtn.style.cssText = `
+      margin-top:14px; width:100%; padding:10px; border:none;
+      border-radius:8px; color:#fff; font-size:1rem; transition: background 0.2s;`;
+
+    const btnTotals = recomputeTotals();
+    const allMet = btnTotals.capMet && btnTotals.ggeMet && btnTotals.budgetMet;
+
+
+    if (allMet) {
+      submitBtn.style.background = "#2d6a4f";
+      submitBtn.style.cursor     = "pointer";
+      submitBtn.title            = "";
+      submitBtn.disabled         = false;
+      submitBtn.addEventListener("click", () => {
+        checkLevelCompletion(totals.capMet, totals.ggeMet, totals.budgetMet);
+      });
+    } else {
+      submitBtn.style.background = "#555";
+      submitBtn.style.cursor     = "not-allowed";
+      submitBtn.title            = "Goals not yet met — keep working!";
+      submitBtn.disabled         = true;
+    }
+
+    goalsList.appendChild(submitBtn);
+
   }
+
 
   // ============================================================
   //  Charts
@@ -1495,6 +1527,7 @@ document.addEventListener("DOMContentLoaded", () => {
   resetBtn.addEventListener("click", () => {
     pauseOverlay.style.display = "none";
     gamePaused = false;
+    levelCompleted[currentLevel] = false;
     loadLevel(currentLevel);
   });
 
