@@ -1605,27 +1605,27 @@ document.addEventListener("DOMContentLoaded", () => {
       tagline: "",
       sections: [
         {
-          heading: "Sandbox Mode",
-          body: `This is a single-year sandbox - there is no time lag and everything you build is available immediately. Take your time to explore and experiment freely.`
-        },
-        {
-          heading: "Your Objective",
+          heading: "Your Goals",
           body: `Manage Ireland's power grid and meet three targets by the end of the year:<br>
                  &bull; <strong>Capacity (TWh)</strong> - supply must match projected demand.<br>
                  &bull; <strong>GGE (MtCO₂eq)</strong> - Greenhouse Gas Emissions (GGE) must fall below the limit.<br>
                  &bull; <strong>Budget (€M)</strong> - stay within the allocated budget (measured in million euros (M)).`
         },
         {
+          heading: "Sandbox Mode",
+          body: `This is a single-year sandbox - there is no time lag so everything you build is available immediately. Take your time to explore and experiment freely with the contrrols.`
+        },
+        {
           heading: "The Power Grid Investment Table",
-          body: `Each row is a power source. Use ▲ / ▼ to add or remove units. Adding a unit increases capacity and may increase or decrease GGE depending on the source. Cost is shown per unit in €M.`
+          body: `Each row of the table refers to a power source. Use the ▲ / ▼ buttons to add or remove a unit. Adding a unit increases the supply of this source while potentially increasing GGE depending on the source. Cost is shown per unit in Mililon euro ( €M ).`
         },
         {
           heading: "Divestment",
-          body: `You can press ▼ past zero to divest - This removes currently in action facilities of this fuel type. This earns a small bit of money for (the saved operation cost), but always less than it cost to build. Use divestment to cut GGEs while earning some money.`
+          body: `You can press each ▼ past zero to divest from (take money out of) resources - This removes currently active plants of this fuel type. This will reduce GGE while returning a small portion of money (the saved operation cost). However it does removes the supply of energy the plant was producing.`
         },
         {
           heading: "Policy Investments",
-          body: `The right-hand panel lists policy options you can activate with a checkbox. Hover over any investment for a tooltip explaining what it does. Each card shows effect tags - showing exactly how the investment changes demand, GGE, and budget. Investments are one-off oppurtunities.`
+          body: `The right-hand panel lists policy options you can activate with a checkbox. Hover over any investment to see the details of the policy. Each policy has an effect shown below the name which shows the exact affect. Investments are one-off oppurtunities.`
         },
       ],
       warning: null,
@@ -1637,24 +1637,23 @@ document.addEventListener("DOMContentLoaded", () => {
       title: "Short Term Planning",
       tagline: "",
       sections: [
+                {
+          heading: "Goals",
+          body: `Match the 2030 Projected Supply and Demand, GGE, and Budget targets to complete the level. We just care about these metrics in the year 2030`
+            },
             {
               heading: "Time Lag",
-              body: "Invested units now take time to build. A nuclear plant with a 8-year lead time ordered in 2027 won't be ready until 2035. Plan ahead."
+              body: "Invested units now take time to build. A nuclear plant with a 8-year lead time ordered in 2027 won't be ready until 2035. This won't help for 2030 Goals so ensure to plan ahead."
             },
             {
               heading: "Multi-Year Play",
-              body: "You manage the grid across 2027-2030. Use the Prev / Next buttons in the header to move between years and make decisions for each one."
+              body: "You manage the grid and the budget across 2027-2030. Use the Prev / Next buttons in the header to move between years and make decisions for each one."
             },
             {
               
               heading: "Per-Year Budgets",
               body: "Each year has its own budget. Unspent money does not roll over - use it in the year it's available or it'll go to waste."
             },
-          
-        {
-          heading: "Goals",
-          body: `Hit the capacity, GGE, and budget goals to complete the level.`
-        },
       ],
       warning: null,
       checkpoints: null,
@@ -1668,30 +1667,26 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           heading: "Commit and Advance",
           tag: true,
-          body: `When you press <strong>"Commit and Advance"</strong> you lock in all decisions for that year and move forward permanently. You cannot go back. Review your goals panel and charts before every commit.`
+          body: `When you press <strong>"Commit and Advance"</strong> you lock in all decisions for that year and move forward permanently. You cannot go back. You wont be able to access leftover money.`
         },
         {
           heading: "Three Goal Checkpoints",
           tag: true,
-          body: `Your grid is evaluated at three fixed checkpoints. You must hit your goals on all three to complete the level.`,
+          body: `Your grid is evaluated at three fixed goal years. You must reach your goals on all three to complete the level.`,
           checkpoints: ["2035", "2040", "2050"],
         },
         {
-          heading: "Future-Planning",
-          body: `Don't only think about the next checkpoint - decisions made in 2030 directly shape what's achievable in 2040 and 2050. <strong>Nuclear has an 8-year lead time</strong>: commission it in 2030 and it comes online in 2038, ready for the 2040 goals. Offshore wind takes 4 years. Start your long-lead builds early.`
-        },
-        {
           heading: "Divestment",
-          body: `Divesting fossil fuels cuts GGE and returns budget in the year you divest - useful for freeing up capital to put into the larger renewables and long-lead sources you'll need for 2040 and 2050.`
+          body: `In order to reach the low Greenhouse Gas Emissions of 2050, you'll need to divest (take money out of) non eco friendly resources - this reduces their operation cost, adding money to the budget which can be invested in more environmentally friendly resources.`
         },
         {
           heading: "New Policy Options",
-          body: `Level 3 unlocks additional investments: a Carbon Tax, a Smart Grid upgrade, and the option to Attract Data Centre Investment - high risk, high reward: it adds demand and emissions but brings in a large budget bonus.`
+          body: `Level 3 adds a Carbon Tax, Smart Grid upgrade, and Data Centre Investment. The data centre adds to the possible budget but also adds to demand and emissions - high risk, high reward.`
         },
       ],
       warning: {
         heading: "No Going Back",
-        body: `Once you commit a year, that checkpoint's result is frozen. A missed target cannot be fixed later. Think carefully before committing.`
+        body: `Once you pass a year, you can't go back to it. So make sure all your goals are going smoothly before you commit.`
       },
     },
   };
