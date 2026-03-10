@@ -1522,6 +1522,42 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Pause / Resume / fullscreen
   // ============================================================
+  document.getElementById("results-summary-btn").addEventListener("click", () => {
+    const teamName = localStorage.getItem("pgm_playerName") || "Unknown Team";
+    const levelNames = { 1: "Tutorial", 2: "2030 Energy Goals", 3: "2050 Long-Term Challenge" };
+
+    const rows = [1, 2, 3].map(lvl => {
+      const completed = levelEverCompleted[lvl];
+      const time      = bestTimes[lvl] !== null ? formatTime(bestTimes[lvl]) : "—";
+      const budget    = bestBudget[lvl] !== null ? `€${bestBudget[lvl].toFixed(0)}M` : "—";
+      const status    = completed
+        ? `<span style="color:#52b788; font-weight:bold;">Completed</span>`
+        : `<span style="color:#aaa;">Not completed</span>`;
+      return `
+        <div style="margin-bottom:14px; padding:12px; background:rgba(255,255,255,0.07); border-radius:8px;">
+          <div style="font-weight:bold; font-size:1rem; margin-bottom:8px;">Level ${lvl} — ${levelNames[lvl]}</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Status</span>${status}
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Best Time</span><span>${time}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Best Remaining Budget</span><span>${budget}</span>
+          </div>
+        </div>`;
+    }).join("");
+
+    document.getElementById("results-body").innerHTML = `
+      <p style="text-align:center; opacity:0.8; margin-bottom:16px;">Team: <strong>${teamName}</strong></p>
+      ${rows}`;
+
+    document.getElementById("results-overlay").style.display = "flex";
+  });
+
+  document.getElementById("results-close-btn").addEventListener("click", () => {
+    document.getElementById("results-overlay").style.display = "none";
+  });
 
   const fullscreenBtn = document.getElementById("fullscreen-btn");
   fullscreenBtn.addEventListener("click", () => {
