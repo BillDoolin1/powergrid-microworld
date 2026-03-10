@@ -345,6 +345,17 @@ button[type="submit"]:hover {
 }
 
 
+:fullscreen #level-screen {
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+}
+
+:fullscreen .level-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 
 
 

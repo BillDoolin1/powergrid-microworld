@@ -284,20 +284,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentConfig.lockForward && yearIndex <= lockedUpToIndex;
   }
 
-  function saveProgress() {
-  localStorage.setItem("pgm_bestTimes",      JSON.stringify(bestTimes));
-  localStorage.setItem("pgm_everCompleted",  JSON.stringify(levelEverCompleted));
-  localStorage.setItem("pgm_levelCompleted", JSON.stringify(levelCompleted));
-}
+  function saveProgress(name) {
+    const key = `pgm_${name}`;
+    localStorage.setItem(key, JSON.stringify({
+      bestTimes,
+      levelEverCompleted,
+      levelCompleted,
+    }));
+  }
 
-function loadProgress() {
-  const bt = localStorage.getItem("pgm_bestTimes");
-  const ec = localStorage.getItem("pgm_everCompleted");
-  const lc = localStorage.getItem("pgm_levelCompleted");
-  if (bt) Object.assign(bestTimes,          JSON.parse(bt));
-  if (ec) Object.assign(levelEverCompleted, JSON.parse(ec));
-  if (lc) Object.assign(levelCompleted,     JSON.parse(lc));
-}
+  function loadProgress(name) {
+    const key = `pgm_${name}`;
+    const saved = localStorage.getItem(key);
+    if (!saved) return false;
+    const data = JSON.parse(saved);
+    if (data.bestTimes)         Object.assign(bestTimes,          data.bestTimes);
+    if (data.levelEverCompleted) Object.assign(levelEverCompleted, data.levelEverCompleted);
+    if (data.levelCompleted)    Object.assign(levelCompleted,     data.levelCompleted);
+    return true;
+  }
+  
+  function resetProgress() {
+    Object.keys(bestTimes).forEach(k          => bestTimes[k]          = null);
+    Object.keys(levelEverCompleted).forEach(k => levelEverCompleted[k] = false);
+    Object.keys(levelCompleted).forEach(k     => levelCompleted[k]     = false);
+  }
 
 
   // Returns net GGE reduction from all checked investments (ggeIncrease offsets it)
@@ -1047,7 +1058,7 @@ function loadProgress() {
     levelCompleteOverlay.style.display = "flex";
     refreshLevelButtons();
 
-    saveProgress();
+    saveProgress(localStorage.getItem("pgm_playerName"));
     
   }
 
@@ -1074,7 +1085,7 @@ function loadProgress() {
       }
       if (currentLevel < 3) unlockLevel(currentLevel + 1);
       refreshLevelButtons();
-      saveProgress();
+      saveProgress(localStorage.getItem("pgm_playerName"));
     }
 
     openSummary(true);
@@ -1446,8 +1457,29 @@ function loadProgress() {
   }
 
   // ============================================================
-  //  Pause / Resume
+  //  Pause / Resume / fullscreen
   // ============================================================
+
+  const fullscreenBtn = document.getElementById("fullscreen-btn");
+  fullscreenBtn.addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      fullscreenBtn.textContent = "✕ Exit Fullscreen";
+    } else {
+      document.exitFullscreen();
+      fullscreenBtn.textContent = "⛶ Fullscreen";
+    }
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) {
+      fullscreenBtn.textContent = "⛶ Fullscreen";
+    }
+  });
+
+
+
+
   pauseBtn.addEventListener("click", () => {
     gamePaused = true;
     pauseOverlay.style.display = "flex";
@@ -1496,19 +1528,30 @@ function loadProgress() {
     refreshLevelButtons();
   });
 
+  const savedName = localStorage.getItem("pgm_playerName");
+  if (savedName) nameInput.value = savedName;
+
   nameForm.addEventListener("submit", e => {
-    loadProgress();
-    [2, 3].forEach(lvl => {
-    if (levelEverCompleted[lvl - 1]) unlockLevel(lvl);
-    });
-    refreshLevelButtons();
-    
-    const savedName = localStorage.getItem("pgm_playerName");
-    if (savedName) nameInput.value = savedName;
     e.preventDefault();
     const name = nameInput.value.trim();
     if (!name) return;
+    const previousName = localStorage.getItem("pgm_playerName");
     localStorage.setItem("pgm_playerName", name);
+
+    resetProgress();
+    const found = loadProgress(name);
+
+    if (!found) {
+      // Brand new team — lock levels 2 and 3 back
+      document.querySelectorAll(".level-btn.locked").forEach(btn => {
+        btn.disabled = true;
+      });
+    } else {
+      [2, 3].forEach(lvl => {
+        if (levelEverCompleted[lvl - 1]) unlockLevel(lvl);
+      });
+    }
+    refreshLevelButtons();
     startScreen.style.display  = "none";
     gameScreen.style.display   = "flex";
     welcomeFlash.style.display = "flex";
