@@ -284,6 +284,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentConfig.lockForward && yearIndex <= lockedUpToIndex;
   }
 
+  function saveProgress() {
+  localStorage.setItem("pgm_bestTimes",      JSON.stringify(bestTimes));
+  localStorage.setItem("pgm_everCompleted",  JSON.stringify(levelEverCompleted));
+  localStorage.setItem("pgm_levelCompleted", JSON.stringify(levelCompleted));
+}
+
+function loadProgress() {
+  const bt = localStorage.getItem("pgm_bestTimes");
+  const ec = localStorage.getItem("pgm_everCompleted");
+  const lc = localStorage.getItem("pgm_levelCompleted");
+  if (bt) Object.assign(bestTimes,          JSON.parse(bt));
+  if (ec) Object.assign(levelEverCompleted, JSON.parse(ec));
+  if (lc) Object.assign(levelCompleted,     JSON.parse(lc));
+}
+
+
   // Returns net GGE reduction from all checked investments (ggeIncrease offsets it)
   function getTotalGgeReduction() {
     return [...document.querySelectorAll("#investment-list input[type='checkbox']")]
@@ -1030,6 +1046,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     levelCompleteOverlay.style.display = "flex";
     refreshLevelButtons();
+
+    saveProgress();
+    
   }
 
   function triggerFinalCommit() {
@@ -1055,9 +1074,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (currentLevel < 3) unlockLevel(currentLevel + 1);
       refreshLevelButtons();
+      saveProgress();
     }
 
     openSummary(true);
+    
+
   }
 
   function unlockLevel(levelNum) {
@@ -1475,9 +1497,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   nameForm.addEventListener("submit", e => {
+    loadProgress();
+    [2, 3].forEach(lvl => {
+    if (levelEverCompleted[lvl - 1]) unlockLevel(lvl);
+    });
+    refreshLevelButtons();
+    
+    const savedName = localStorage.getItem("pgm_playerName");
+    if (savedName) nameInput.value = savedName;
     e.preventDefault();
     const name = nameInput.value.trim();
     if (!name) return;
+    localStorage.setItem("pgm_playerName", name);
     startScreen.style.display  = "none";
     gameScreen.style.display   = "flex";
     welcomeFlash.style.display = "flex";
