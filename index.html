@@ -195,13 +195,19 @@
       </div>
 
     </div><!-- #level-screen -->
-  <div id="results-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:300; align-items:center; justify-content:center;">
-    <div style="background:#1b4332; border-radius:12px; padding:32px; min-width:340px; max-width:600px; width:90%; color:#fff; max-height:80vh; overflow-y:auto;">
-      <h2 style="margin:0 0 16px; text-align:center;">Results Summary</h2>
-      <div id="results-body"></div>
-      <button id="results-close-btn" style="margin-top:20px; width:100%; padding:10px; background:#52b788; border:none; border-radius:8px; color:#fff; font-size:1rem; cursor:pointer;">Close</button>
+<div id="results-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:300; align-items:center; justify-content:center;">
+  <div style="background:#1b4332; border-radius:12px; padding:32px; min-width:340px; max-width:600px; width:90%; color:#fff; max-height:80vh; overflow-y:auto;">
+    <h2 style="margin:0 0 16px; text-align:center;">Team Progress</h2>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button id="tab-results-btn" style="flex:1; padding:8px; border:none; border-radius:8px; background:#52b788; color:#fff; cursor:pointer; font-size:0.9rem;">Results</button>
+      <button id="tab-achievements-btn" style="flex:1; padding:8px; border:none; border-radius:8px; background:#2d6a4f; color:#fff; cursor:pointer; font-size:0.9rem;">Achievements (Level 3)</button>
     </div>
+    <div id="results-body"></div>
+    <div id="achievements-body" style="display:none;"></div>
+    <button id="results-close-btn" style="margin-top:20px; width:100%; padding:10px; background:#52b788; border:none; border-radius:8px; color:#fff; font-size:1rem; cursor:pointer;">Close</button>
   </div>
+</div>
+
 
   </div><!-- #game-screen -->
 

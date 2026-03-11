@@ -18,6 +18,9 @@ const ENERGY_SOURCES = [
 
 const DIVESTMENT_REFUND_RATE = 0.5;
 
+
+
+
 const LEVELS = {
   1: {
     name: "Tutorial",
@@ -171,6 +174,7 @@ const levelEverCompleted = { 1: false, 2: false, 3: false };
 
 document.addEventListener("DOMContentLoaded", () => {
 
+  
   const startScreen          = document.getElementById("start-screen");
   const gameScreen           = document.getElementById("game-screen");
   const welcomeFlash         = document.getElementById("welcome-flash");
@@ -209,6 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const bestTimes = { 1: null, 2: null, 3: null };
   const bestBudget = { 1: null, 2: null, 3: null };
+  let earnedAchievements = [];
 
 
   const levelCompleted = { 1: false, 2: false, 3: false };
@@ -229,7 +234,62 @@ document.addEventListener("DOMContentLoaded", () => {
   // Live baseCap/baseGge per source - updated on each commit merge
   // Keyed by source type: { oil: { baseCap: X, baseGge: Y }, ... }
   let mergedBase = {};
+  const ACHIEVEMENTS = [
+  {
+    id: "nuclear",
+    label: "Nuclear Option",
+    desc: "Invested in nuclear power",
+    check: () => {
+      const base = mergedBase["nuclear"];
+      return (base && base.baseCap > 0) || getTotalUnits("nuclear") > 0;
+    },
+  },
+  {
+    id: "datacenter",
+    label: "Data Hungry",
+    desc: "Took the Data Centre Investment",
+    check: () => {
+      return !!investmentYear["datacenter"] ||
+        [...document.querySelectorAll("#investment-list input[type='checkbox']")]
+          .some(cb => cb.dataset.invId === "datacenter" && cb.checked);
+    },
+  },
+  {
+    id: "quick",
+    label: "Quick Thinking",
+    desc: "Completed Level 3 in under 5 minutes",
+    check: () => gameTimer < 300,
+  },
+  {
+  id: "budget",
+  label: "Good With Money",
+  desc: "Finished with over €800M remaining across all years",
+  check: () => bestBudget[currentLevel] !== null && bestBudget[currentLevel] > 800
+  },
 
+  {
+    id: "green",
+    label: "Going Green",
+    desc: "Finished with zero oil and gas units",
+    check: () => {
+      const oilBase = mergedBase["oil"];
+      const gasBase = mergedBase["gas"];
+      const oilOriginal = ENERGY_SOURCES.find(s => s.type === "oil").baseCap;
+      const gasOriginal = ENERGY_SOURCES.find(s => s.type === "gas").baseCap;
+      return (oilBase && oilBase.baseCap <= oilOriginal) &&
+             (gasBase && gasBase.baseCap <= gasOriginal) &&
+             (getTotalUnits("oil") + getTotalUnits("gas")) == -13;
+    },
+  },
+];
+
+const ACHIEVEMENT_ICONS = {
+  nuclear:    "⚛️",
+  datacenter: "🖥️",
+  quick:      "⚡",
+  budget:     "💰",
+  green:      "🌿",
+};
   let unitState      = {};
   let investmentYear = {};
   
@@ -293,6 +353,9 @@ document.addEventListener("DOMContentLoaded", () => {
       bestBudget,
       levelEverCompleted,
       levelCompleted,
+      earnedAchievements,
+      savedAt: Date.now(),
+
     }));
   }
 
@@ -301,18 +364,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const saved = localStorage.getItem(key);
     if (!saved) return false;
     const data = JSON.parse(saved);
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+    if (data.savedAt && Date.now() - data.savedAt > THREE_HOURS) {
+      localStorage.removeItem(key);
+      return false;
+    }
+
     if (data.bestTimes)         Object.assign(bestTimes,          data.bestTimes);
     if (data.bestBudget) Object.assign(bestBudget, data.bestBudget);
     if (data.levelEverCompleted) Object.assign(levelEverCompleted, data.levelEverCompleted);
     if (data.levelCompleted)    Object.assign(levelCompleted,     data.levelCompleted);
+    if (data.earnedAchievements) earnedAchievements = data.earnedAchievements;
+
     return true;
   }
   
-  function resetProgress() {
-    Object.keys(bestTimes).forEach(k          => bestTimes[k]          = null);
-    Object.keys(levelEverCompleted).forEach(k => levelEverCompleted[k] = false);
-    Object.keys(levelCompleted).forEach(k     => levelCompleted[k]     = false);
-  }
+
 
 
   // Returns net GGE reduction from all checked investments (ggeIncrease offsets it)
@@ -577,8 +644,11 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`;
     }).join("");
 
+    overlay.style.display = "flex";
     document.getElementById("summary-body").innerHTML = rows;
     overlay.style.display = "flex";
+
+
   }
 
   // ============================================================
@@ -1078,7 +1148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gamePaused = true;
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 
-    // Freeze any goal years not yet frozen (including the final goal year)
+    // Freeze all goal years first
     if (currentConfig.goalYears) {
       currentConfig.goalYears.forEach(gy => {
         if (!frozenGoalStatus[gy]) frozenGoalStatus[gy] = getGoalYearStatus(gy);
@@ -1086,34 +1156,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const goalYears   = currentConfig.goalYears;
-    const allGoalsMet = goalYears.every(gy => getGoalYearStatus(gy).allOk);
+    const allGoalsMet = goalYears.every(gy => frozenGoalStatus[gy].allOk);
 
-    if (allGoalsMet && !levelCompleted[currentLevel]) {
-      levelCompleted[currentLevel]     = true;
-      levelEverCompleted[currentLevel] = true;
+    if (allGoalsMet) {
+      if (!levelCompleted[currentLevel]) {
+        levelCompleted[currentLevel]     = true;
+        levelEverCompleted[currentLevel] = true;
+
+        if (currentLevel < 3) unlockLevel(currentLevel + 1);
+        refreshLevelButtons();
+      }
+
       const finishTime = gameTimer;
       if (bestTimes[currentLevel] === null || finishTime < bestTimes[currentLevel]) {
         bestTimes[currentLevel] = finishTime;
       }
-    const totalRemaining = currentConfig.years.reduce((sum, yr) => {
-      const cap = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
-      const spent = getYearSpend(yr);
-      return sum + (cap - spent);
-    }, 0);
 
-    if (bestBudget[currentLevel] === null || totalRemaining > bestBudget[currentLevel]) {
-      bestBudget[currentLevel] = totalRemaining;
+      const totalRemaining = currentConfig.years.reduce((sum, yr) => {
+        const cap   = currentConfig.budgetByYear[yr] + getTotalBudgetBonus();
+        const spent = getYearSpend(yr);
+        return sum + (cap - spent);
+      }, 0);
+      if (bestBudget[currentLevel] === null || totalRemaining > bestBudget[currentLevel]) {
+        bestBudget[currentLevel] = totalRemaining;
+      }
+
+      // Runs on every passing attempt — achievements can be earned on replays
+      ACHIEVEMENTS.forEach(a => {
+        if (!earnedAchievements.includes(a.id) && a.check()) {
+          earnedAchievements.push(a.id);
+        }
+      });
     }
 
-      if (currentLevel < 3) unlockLevel(currentLevel + 1);
-      refreshLevelButtons();
-      saveProgress(localStorage.getItem("pgm_playerName"));
-    }
-
+    saveProgress(localStorage.getItem("pgm_playerName"));
     openSummary(true);
-    
-
   }
+
+
 
   function unlockLevel(levelNum) {
     const btn = document.querySelector(`.level-btn[data-level="${levelNum}"]`);
@@ -1522,10 +1602,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   //  Pause / Resume / fullscreen
   // ============================================================
-  document.getElementById("results-summary-btn").addEventListener("click", () => {
-    const teamName = localStorage.getItem("pgm_playerName") || "Unknown Team";
+  function buildResultsBody() {
+    const teamName   = localStorage.getItem("pgm_playerName") || "Unknown Team";
     const levelNames = { 1: "Tutorial", 2: "2030 Energy Goals", 3: "2050 Long-Term Challenge" };
-
     const rows = [1, 2, 3].map(lvl => {
       const completed = levelEverCompleted[lvl];
       const time      = bestTimes[lvl] !== null ? formatTime(bestTimes[lvl]) : "—";
@@ -1547,12 +1626,49 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>`;
     }).join("");
-
-    document.getElementById("results-body").innerHTML = `
+    return `
       <p style="text-align:center; opacity:0.8; margin-bottom:16px;">Team: <strong>${teamName}</strong></p>
       ${rows}`;
+  }
 
+  function buildAchievementsBody() {
+    const icons = ACHIEVEMENTS.map(a => {
+      const earned = earnedAchievements.includes(a.id);
+      const icon   = ACHIEVEMENT_ICONS[a.id] || "🏅";
+      return `
+        <div class="achievement-icon">
+          <div class="achievement-circle ${earned ? 'earned' : 'locked'}">
+            ${icon}
+            <div class="achievement-tooltip">${a.desc}</div>
+          </div>
+          <span class="achievement-label">${a.label}</span>
+        </div>`;
+    }).join("");
+    return `<div class="achievement-grid">${icons}</div>`;
+  }
+
+  document.getElementById("results-summary-btn").addEventListener("click", () => {
+    document.getElementById("results-body").innerHTML      = buildResultsBody();
+    document.getElementById("achievements-body").innerHTML = buildAchievementsBody();
+    document.getElementById("results-body").style.display      = "block";
+    document.getElementById("achievements-body").style.display = "none";
+    document.getElementById("tab-results-btn").style.background      = "#52b788";
+    document.getElementById("tab-achievements-btn").style.background = "#2d6a4f";
     document.getElementById("results-overlay").style.display = "flex";
+  });
+
+  document.getElementById("tab-results-btn").addEventListener("click", () => {
+    document.getElementById("results-body").style.display      = "block";
+    document.getElementById("achievements-body").style.display = "none";
+    document.getElementById("tab-results-btn").style.background      = "#52b788";
+    document.getElementById("tab-achievements-btn").style.background = "#2d6a4f";
+  });
+
+  document.getElementById("tab-achievements-btn").addEventListener("click", () => {
+    document.getElementById("results-body").style.display      = "none";
+    document.getElementById("achievements-body").style.display = "block";
+    document.getElementById("tab-achievements-btn").style.background = "#52b788";
+    document.getElementById("tab-results-btn").style.background      = "#2d6a4f";
   });
 
   document.getElementById("results-close-btn").addEventListener("click", () => {
@@ -1638,7 +1754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const previousName = localStorage.getItem("pgm_playerName");
     localStorage.setItem("pgm_playerName", name);
 
-    resetProgress();
+  
     const found = loadProgress(name);
 
     if (!found) {

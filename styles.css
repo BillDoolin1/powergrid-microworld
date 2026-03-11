@@ -244,6 +244,12 @@ button[type="submit"]:hover {
   width: 100%;
 }
 
+#results-summary-btn {
+  display: block;
+  margin: 16px auto 0;
+}
+
+
 .level-row .level-btn {
   flex: 1;
 }
@@ -930,4 +936,76 @@ button[type="submit"]:hover {
 .intro-start-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 26px rgba(82,183,136,0.42);
+}
+
+
+
+/* achievements stuff */
+
+.achievement-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.achievement-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90px;
+  text-align: center;
+  position: relative;
+}
+
+.achievement-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  cursor: default;
+  transition: transform 0.2s;
+}
+
+.achievement-circle.earned {
+  background: #52b788;
+  border: 3px solid #95d5b2;
+}
+
+.achievement-circle.locked {
+  background: #2d3a2e;
+  border: 3px solid #3a4f3c;
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.achievement-circle:hover .achievement-tooltip {
+  display: block;
+}
+
+.achievement-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.achievement-label {
+  font-size: 0.75rem;
+  color: #ccc;
+  margin-top: 2px;
 }
