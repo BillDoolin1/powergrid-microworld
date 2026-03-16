@@ -494,12 +494,10 @@ const ACHIEVEMENT_ICONS = {
     if (!currentConfig.goalYears) return;
     const yr = currentYear();
     const goalYears = currentConfig.goalYears;
-    // Only switch to a goal tab if we're exactly on that goal year
-    const exactIdx = goalYears.indexOf(yr);
-    if (exactIdx !== -1) {
-      activeGoalTab = exactIdx;
-    }
+    const idx = goalYears.findIndex(gy => gy >= yr);
+    activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
   }
+
 
 
   // ============================================================
