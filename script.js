@@ -492,11 +492,15 @@ const ACHIEVEMENT_ICONS = {
 
   function syncGoalTab() {
     if (!currentConfig.goalYears) return;
-    const yr        = currentYear();
+    const yr = currentYear();
     const goalYears = currentConfig.goalYears;
-    const idx = goalYears.findIndex(gy => gy > yr);
-    activeGoalTab = idx === -1 ? goalYears.length - 1 : idx;
+    // Only switch to a goal tab if we're exactly on that goal year
+    const exactIdx = goalYears.indexOf(yr);
+    if (exactIdx !== -1) {
+      activeGoalTab = exactIdx;
+    }
   }
+
 
   // ============================================================
   //  Data merge on commit
