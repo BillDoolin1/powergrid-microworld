@@ -7,13 +7,13 @@ const ENERGY_SOURCES = [
   // → divesting all N units drives both capacity and GGE exactly to zero
   //
   //  type        label           baseCap   baseGge   unitCap  unitGge  N   construct  operating  leadTime
-  { type: "oil",      label: "Oil",           baseCap:  5.75,  baseGge:  9.500, unitCap: 1.15,  unitGge: 1.9,   construct:  100, operating:  60, leadTime: 2 },  // N=5
-  { type: "gas",      label: "Gas",           baseCap: 13.16,  baseGge: 17.504, unitCap: 1.645, unitGge: 2.188, construct: 80, operating:  70, leadTime: 2 },  // N=8
+  { type: "oil",      label: "Oil",           baseCap:  5.75,  baseGge:  9.500, unitCap: 1.15,  unitGge: 1.9,   construct:  120, operating:  60, leadTime: 2 },  // N=5
+  { type: "gas",      label: "Gas",           baseCap: 13.16,  baseGge: 17.504, unitCap: 1.645, unitGge: 2.188, construct: 100, operating:  70, leadTime: 2 },  // N=8
   { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead - workhorse renewable
-  { type: "solar",    label: "Solar",         baseCap:  1.05,  baseGge:  0.000, unitCap: 0.35,  unitGge: 0.00,  construct:  90, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest - fine-tune tool
+  { type: "solar",    label: "Solar",         baseCap:  1.2,  baseGge:  0.000, unitCap: 0.4,  unitGge: 0.00,  construct:  80, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest - fine-tune tool
   { type: "offshore", label: "Offshore Wind", baseCap:  2.20,  baseGge:  0.000, unitCap: 2.20,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest - long-term bet
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.80,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
-  { type: "hydro",    label: "Hydro",         baseCap:  0.72,  baseGge:  0.000, unitCap: 0.72,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.00,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
+  { type: "hydro",    label: "Hydro",         baseCap:  0.78,  baseGge:  0.000, unitCap: 0.78,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
 ];
 
 const DIVESTMENT_REFUND_RATE = 0.5;
@@ -39,7 +39,7 @@ const LEVELS = {
         costM: 75,
         // Rooftop solar offsets household consumption - reduces how much grid supply is needed
         effect: { demandReduction: 1.5 },
-        tooltip: "Subsidises rooftop solar panels, reducing households' reliance on the grid.",
+        tooltip: "Subsidises rooftop solar panels, reducing households' reliance on the grid.", 
       },
       {
         id: "heat-pump",
