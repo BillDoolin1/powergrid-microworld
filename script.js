@@ -984,13 +984,24 @@ const ACHIEVEMENT_ICONS = {
       }
 
       if (downBtn) {
-        // Floor uses mergedBase cap
         const capAtNext = getBaseCap(s.type) + (totalUnits - 1) * s.unitCap;
         const atFloor   = capAtNext < 0;
-        downBtn.disabled      = atFloor;
-        downBtn.title         = atFloor ? "Cannot divest further – capacity at zero" : "";
-        downBtn.style.opacity = atFloor ? "0.35" : "";
-        downBtn.style.cursor  = atFloor ? "not-allowed" : "";
+
+        // Nuclear-specific: block divest only if most recent investment was in a locked year
+        const mostRecentYr  = getMostRecentInvestedYear(s.type);
+        const committedIdx  = mostRecentYr ? currentConfig.years.indexOf(Number(mostRecentYr)) : -1;
+        const lockedInPrevYear = s.type === "nuclear"
+          && committedIdx !== -1
+          && isYearLocked(committedIdx);
+
+        downBtn.disabled      = atFloor || lockedInPrevYear;
+        downBtn.title         = lockedInPrevYear
+          ? "Nuclear plants already under construction cannot be cancelled"
+          : atFloor
+          ? "Cannot divest further – capacity at zero"
+          : "";
+        downBtn.style.opacity = (atFloor || lockedInPrevYear) ? "0.35" : "";
+        downBtn.style.cursor  = (atFloor || lockedInPrevYear) ? "not-allowed" : "";
       }
     });
 
@@ -1287,6 +1298,11 @@ const ACHIEVEMENT_ICONS = {
         unitState[type] = (unitState[type] || 0) + 1;
       }
       if (stepBtn.classList.contains("down")) {
+        if (source.type === "nuclear") {
+          const mostRecentYr = getMostRecentInvestedYear(type);
+          const committedIdx = mostRecentYr ? currentConfig.years.indexOf(Number(mostRecentYr)) : -1;
+          if (committedIdx !== -1 && isYearLocked(committedIdx)) return;
+        }     
         const current    = unitState[type] || 0;
         const currentCap = source.baseCap + current * source.unitCap;
         if (currentCap <= 0) return;
@@ -1295,6 +1311,7 @@ const ACHIEVEMENT_ICONS = {
           ? Math.ceil(-source.baseCap / source.unitCap)
           : current - 1;
       }
+      
     } else {
       const yr     = currentYear();
       const byYear = unitState[type];
