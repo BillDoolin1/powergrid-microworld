@@ -12,7 +12,7 @@ const ENERGY_SOURCES = [
   { type: "wind",     label: "Wind",          baseCap: 10.50,  baseGge:  0.000, unitCap: 0.875, unitGge: 0.00,  construct: 130, operating:  60, leadTime: 3 },  // N=12; medium capacity, medium lead - workhorse renewable
   { type: "solar",    label: "Solar",         baseCap:  1.2,  baseGge:  0.000, unitCap: 0.4,  unitGge: 0.00,  construct:  80, operating:  40, leadTime: 1 },  // N=3;  smallest capacity, fastest - fine-tune tool
   { type: "offshore", label: "Offshore Wind", baseCap:  2.20,  baseGge:  0.000, unitCap: 2.20,  unitGge: 0.00,  construct: 250, operating: 100, leadTime: 4 },  // N=1;  biggest capacity per unit, slowest - long-term bet
-  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.00,  construct: 500, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
+  { type: "nuclear",  label: "Nuclear",       baseCap:  0.00,  baseGge:  0.000, unitCap: 8.00,  unitGge: 0.00,  construct: 650, operating: 150, leadTime: 8 },  // baseCap=0; massive capacity but very slow - plan far ahead
   { type: "hydro",    label: "Hydro",         baseCap:  0.78,  baseGge:  0.000, unitCap: 0.78,  unitGge: 0.00,  construct: 120, operating:  80, leadTime: 2 },  // N=1;  reliable medium-capacity, medium lead
 ];
 
@@ -62,7 +62,7 @@ const LEVELS = {
   },
   2: {
     name: "2030 Energy Goals",
-    budgetByYear: { 2027: 700, 2028: 650, 2029: 400, 2030: 150 },
+    budgetByYear: { 2027: 600, 2028: 600, 2029: 400, 2030: 150 },
     years: [2027, 2028, 2029, 2030],
     startingMix: {},
     ggeTargetByYear: { 2027: 25, 2028: 23, 2029: 22, 2030: 20 },
@@ -279,6 +279,21 @@ document.addEventListener("DOMContentLoaded", () => {
              (getTotalUnits("oil") + getTotalUnits("gas")) == -13;
     },
   },
+  {
+  id: "perfectionist",
+  label: "Perfectionist",
+  desc: "Completed the level without nuclear power or data centres (Very Hard)",
+  check: () => {
+    const nuclearBase = mergedBase["nuclear"];
+    const hasNuclear  = nuclearBase
+      ? nuclearBase.baseCap > 0 || getTotalUnits("nuclear") > 0
+      : getTotalUnits("nuclear") > 0;
+    const hasDataCenter = !!investmentYear["datacenter"]
+      || [...document.querySelectorAll("#investment-list input[type=checkbox]")]
+           .some(cb => cb.dataset.invId === "datacenter" && cb.checked);
+    return !hasNuclear && !hasDataCenter;
+  },
+},
 ];
 
 const ACHIEVEMENT_ICONS = {
@@ -287,6 +302,7 @@ const ACHIEVEMENT_ICONS = {
   quick:      "⚡",
   budget:     "💰",
   green:      "🌿",
+  perfectionist: "🏆",
 };
   let unitState      = {};
   let investmentYear = {};
@@ -1648,21 +1664,34 @@ const ACHIEVEMENT_ICONS = {
       ${rows}`;
   }
 
-  function buildAchievementsBody() {
-    const icons = ACHIEVEMENTS.map(a => {
-      const earned = earnedAchievements.includes(a.id);
-      const icon   = ACHIEVEMENT_ICONS[a.id] || "🏅";
-      return `
-        <div class="achievement-icon">
-          <div class="achievement-circle ${earned ? 'earned' : 'locked'}">
-            ${icon}
-            <div class="achievement-tooltip">${a.desc}</div>
-          </div>
-          <span class="achievement-label">${a.label}</span>
-        </div>`;
-    }).join("");
-    return `<div class="achievement-grid">${icons}</div>`;
-  }
+function buildAchievementsBody() {
+  const earned = ACHIEVEMENTS.filter(a => earnedAchievements.includes(a.id)).length;
+  const total  = ACHIEVEMENTS.length;
+
+  const icons = ACHIEVEMENTS.map(a => {
+    const isEarned = earnedAchievements.includes(a.id);
+    const icon     = ACHIEVEMENT_ICONS[a.id] || "🏅";
+    return `
+      <div class="achievement-icon">
+        <div class="achievement-circle ${isEarned ? 'earned' : 'locked'}">
+          ${icon}
+          <div class="achievement-tooltip">${a.desc}</div>
+        </div>
+        <span class="achievement-label">${a.label}</span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div style="text-align:center; margin-bottom:14px;">
+      <span style="font-size:1.1rem; font-weight:bold; color:#52b788;">${earned}</span>
+      <span style="font-size:1rem; color:#ccc;"> / ${total} Achievements Earned</span>
+      <div style="margin-top:8px; background:#2d3a2e; border-radius:999px; height:8px; overflow:hidden;">
+        <div style="width:${(earned/total)*100}%; background:#52b788; height:100%; border-radius:999px; transition:width 0.4s;"></div>
+      </div>
+    </div>
+    <div class="achievement-grid">${icons}</div>`;
+}
+
 
   document.getElementById("results-summary-btn").addEventListener("click", () => {
     document.getElementById("results-body").innerHTML      = buildResultsBody();

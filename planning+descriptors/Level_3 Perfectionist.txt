@@ -19,8 +19,12 @@ national
 2045
 
 -1 oil
--1 gas
+-2 gas
 1 solar 
 1 offshore
-retrofitting
+smart grid
+
+2050
+
+retrofitting allowance
 
