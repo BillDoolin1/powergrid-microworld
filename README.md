@@ -18,11 +18,10 @@ in to keep things engaging.
 
 ## Features
 
-- 3 levels progressing toward 2050
-- Budget and GHG emissions management
-- Timer-based decision making
+- 3 levels of scaling difficulting from a tutorial based in 2026 to the final level culminating in 2050 Goals
+- Budget, Energy and GHG emissions management
 - 6 unlockable achievements
-- Best score saved locally via localStorage
+- Best scores budget and time wise saved locally
 - No login or install needed
 
 ---
@@ -37,8 +36,10 @@ in to keep things engaging.
 
 ## Workshop Use
 
-Share the link with students and go. Teams compete to meet Ireland's climate
-targets, then present and justify their decisions at the end of the session.
+Intended to be used within a workshop environment, with introductory presentations, group 
+discussion, group collaboration and finishing with presenation of results and reflections 
+Share the link with students and go. Teams compete to meet Ireland's climate targets,
+then present and justify their decisions at the end of the session.
 
 ---
 
